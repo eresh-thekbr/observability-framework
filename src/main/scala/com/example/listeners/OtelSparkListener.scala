@@ -328,12 +328,6 @@ class OtelSparkListener(conf: SparkConf) extends SparkListener {
     appId = appStart.appId.getOrElse("unknown")
     println(s"[OtelListener] App started: ${appName}, id=${appId}")
 
-/*    val span = tracer.spanBuilder(s"Spark Application: ${appName}")
-      .setAttribute("spark.app.id", appId)
-      .setAttribute("spark.app.name", appName)
-      .setAttribute("spark.app.startTime", appStart.time)
-      .startSpan()*/
-
     val span = tracer.spanBuilder(s"Spark Application: $appName")
       .setNoParent()
       .setSpanKind(SpanKind.SERVER) // <-- helps Datadog treat it like an entry span
@@ -350,7 +344,7 @@ class OtelSparkListener(conf: SparkConf) extends SparkListener {
       val failed = OtelSparkListener.appHasFailed || failedJobCount > 0 || failedStageCount > 0 || failedTaskCount > 0
 
       span.setAttribute("spark.app.status", if (failed) "FAILED" else "SUCCEEDED")
-      span.setAttribute("error", failed) // ✅ important for Datadog rollups
+      span.setAttribute("error", failed)
 
       if (failed) {
         span.setStatus(StatusCode.ERROR, "Application failed")
@@ -385,7 +379,6 @@ class OtelSparkListener(conf: SparkConf) extends SparkListener {
       .setAttribute("spark.job.time", jobStart.time)
       .startSpan()
 
-    // ✅ PRODUCTION: Map stage -> jobId and job -> sqlId
     val stageIdsArr = jobStart.stageIds.toArray
     jobToStageIds.put(jobStart.jobId, stageIdsArr)
     stageIdsArr.foreach { stageId =>
@@ -401,44 +394,6 @@ class OtelSparkListener(conf: SparkConf) extends SparkListener {
     val scope = span.makeCurrent()
     activeJobSpans.put(jobStart.jobId, (span, scope))
   }
-
-  /*override def onJobEnd(jobEnd: SparkListenerJobEnd): Unit = {
-    try {
-      println(s"[OtelListener] Job ended: jobId=${jobEnd.jobId}, result=${jobEnd.jobResult}")
-      activeJobSpans.remove(jobEnd.jobId) match {
-        case Some((span, scope)) =>
-          scope.close()
-          jobEnd.jobResult match {
-            case JobSucceeded =>
-              span.setAttribute("spark.job.status", "succeeded")
-              span.setAttribute("error", false)
-            case other =>
-              failedJobCount += 1
-              val reason = other.toString
-
-              logger.error(s"[OtelSparkListener] Job ${jobEnd.jobId} FAILED: $reason")
-
-              // SET ERROR ON SPAN BEFORE ENDING
-              span.setAttribute("error", true)
-              span.recordException(new Exception(reason))
-              span.setStatus(StatusCode.ERROR, reason)
-              span.end()
-              markJobFailed(jobEnd.jobId, reason)
-
-          }
-
-        case None =>
-          logger.warn(s"No active span found for job ${jobEnd.jobId}")
-      }
-
-      val stageIds = jobToStageIds.remove(jobEnd.jobId)
-      if (stageIds != null) stageIds.foreach(stageToJobSpan.remove)
-    } catch {
-      case ex: Exception =>
-        logger.error(s"[OtelListener] Exception in onJobEnd: ${ex.getMessage}", ex)
-    }
-  }*/
-
   override def onJobEnd(jobEnd: SparkListenerJobEnd): Unit = {
     activeJobSpans.remove(jobEnd.jobId) match {
       case Some((span, scope)) =>
@@ -458,7 +413,7 @@ class OtelSparkListener(conf: SparkConf) extends SparkListener {
               span.setStatus(StatusCode.ERROR, reason)
           }
         } finally {
-          span.end() // ✅ ALWAYS END
+          span.end()
         }
 
       case None =>
@@ -487,63 +442,6 @@ class OtelSparkListener(conf: SparkConf) extends SparkListener {
 
     activeStageSpans.put(stageInfo.stageId, span)
   }
-
-  /*override def onStageCompleted(stageCompleted: SparkListenerStageCompleted): Unit = {
-    stagesRunning.updateAndGet(v => Math.max(0, v - 1))
-    val stageInfo = stageCompleted.stageInfo
-    val stageId = stageInfo.stageId
-    println(s"[OtelListener] Stage completed: stageId=${stageId}, name=${stageInfo.name}")
-
-    activeStageSpans.remove(stageId).foreach { span =>
-      val reason = stageInfo.failureReason.getOrElse("none")
-      span.setAttribute("spark.stage.failureReason", reason)
-
-      if (reason != "none") {
-        failedStageCount += 1
-        logger.error(s"[OtelSparkListener] Stage $stageId FAILED: $reason")
-
-        // GET SPAN AND SET ERROR BEFORE ENDING
-        activeStageSpans.get(stageId).foreach { span =>
-          span.setAttribute("error", true)
-          span.recordException(new Exception(reason))
-          span.setStatus(StatusCode.ERROR, reason)
-        }
-
-        // NOW remove and end it
-        activeStageSpans.remove(stageId).foreach(_.end())
-
-        // Mark job failed
-        markStageFailed(stageId, reason)
-      }
-
-      span.end()
-    }
-  }*/
-
-  /*override def onStageCompleted(stageCompleted: SparkListenerStageCompleted): Unit = {
-    stagesRunning.updateAndGet(v => Math.max(0, v - 1))
-    val si = stageCompleted.stageInfo
-    val stageId = si.stageId
-
-    activeStageSpans.remove(stageId).foreach { span =>
-      si.failureReason match {
-        case Some(reason) =>
-          failedStageCount += 1
-          span.setAttribute("spark.stage.status", "FAILED")
-          span.setAttribute("spark.stage.failureReason", reason)
-          span.setAttribute("error", true)
-          span.recordException(new Exception(reason))
-          span.setStatus(StatusCode.ERROR, reason)
-
-          markStageFailed(stageId, reason)
-
-        case None =>
-          span.setAttribute("spark.stage.status", "SUCCESS")
-          span.setAttribute("error", false)
-      }
-      span.end()
-    }
-  }*/
 
   override def onStageCompleted(stageCompleted: SparkListenerStageCompleted): Unit = {
     stagesRunning.updateAndGet(v => Math.max(0, v - 1))
@@ -607,86 +505,6 @@ class OtelSparkListener(conf: SparkConf) extends SparkListener {
 
     activeTaskSpans.put(taskInfo.taskId, span)
   }
-
-  // ✅ PRODUCTION: Complete task failure handling with error propagation
-  /*override def onTaskEnd(taskEnd: SparkListenerTaskEnd): Unit = {
-    val taskInfo = taskEnd.taskInfo
-    val stageId = taskEnd.stageId
-
-    val m = taskEnd.taskMetrics
-    if (m != null) {
-      val attrs = commonAttrs()
-      val read = m.shuffleReadMetrics.totalBytesRead
-      val write = m.shuffleWriteMetrics.bytesWritten
-      if (read > 0) shuffleReadBytes.add(read, attrs)
-      if (write > 0) shuffleWriteBytes.add(write, attrs)
-    }
-
-    tasksRunning.updateAndGet(v => Math.max(0, v - 1))
-
-    // ✅ PRODUCTION: Always process failures first
-    if (taskInfo.failed) {
-      failedTaskCount += 1
-      logger.error(s"[OtelSparkListener] Task ${taskInfo.taskId} FAILED: ${taskEnd.reason}")
-
-      // GET AND UPDATE SPAN BEFORE REMOVING
-      activeTaskSpans.get(taskInfo.taskId).foreach { span =>
-        span.setAttribute("error", true)
-        span.setAttribute("spark.task.status", "FAILED")
-        span.recordException(new Exception(taskEnd.reason.toString))
-        span.setStatus(StatusCode.ERROR, taskEnd.reason.toString)
-      }
-
-      // NOW remove and end it
-      activeTaskSpans.remove(taskInfo.taskId).foreach(_.end())
-
-      // Mark stage failed
-      markStageFailed(stageId, s"Task ${taskInfo.taskId} failed")
-    }
-
-    val taskStatus = if (taskInfo.failed) "FAILED" else "SUCCESS"
-
-    // ✅ If span exists, update it
-    activeTaskSpans.remove(taskInfo.taskId).foreach { span =>
-      span.setAttribute("spark.task.status", taskStatus)
-      span.setAttribute("spark.task.failed", taskInfo.failed)
-      span.setAttribute("spark.task.endReason", taskEnd.reason.toString)
-
-      val durationMs = taskInfo.finishTime - taskInfo.launchTime
-      if (taskInfo.launchTime > 0 && taskInfo.finishTime > 0 && durationMs >= 0) {
-        span.setAttribute("spark.task.duration_ms", durationMs)
-      }
-
-      if (m != null) {
-        span.setAttribute("spark.task.executorRunTime_ms", m.executorRunTime)
-        span.setAttribute("spark.task.jvmGcTime_ms", m.jvmGCTime)
-        span.setAttribute("spark.task.memBytesSpilled", m.memoryBytesSpilled)
-        span.setAttribute("spark.task.diskBytesSpilled", m.diskBytesSpilled)
-        span.setAttribute("spark.task.shuffleRead_bytes", m.shuffleReadMetrics.totalBytesRead)
-        span.setAttribute("spark.task.shuffleWrite_bytes", m.shuffleWriteMetrics.bytesWritten)
-      }
-
-      if (taskInfo.failed) {
-        activeTaskSpans.get(taskInfo.taskId).foreach { span =>
-          span.setAttribute("error", true)
-          span.setAttribute("spark.task.failed", true)
-          span.setAttribute("spark.task.status", "FAILED")
-          span.setAttribute("spark.failure.reason", taskEnd.reason.toString)
-        }
-
-        activeTaskSpans.remove(taskInfo.taskId).foreach(_.end())
-      } else {
-        span.setAttribute("error", false)
-      }
-
-      span.end()
-    }
-
-    // ✅ PRODUCTION: Fallback span creation for missing spans
-    if (!activeTaskSpans.contains(taskInfo.taskId) && taskInfo.failed) {
-      createFallbackTaskSpan(taskInfo, taskEnd, taskStatus)
-    }
-  }*/
 
   override def onTaskEnd(taskEnd: SparkListenerTaskEnd): Unit = {
     val ti = taskEnd.taskInfo
@@ -926,7 +744,6 @@ class OtelSparkListener(conf: SparkConf) extends SparkListener {
     case e: SparkListenerSQLExecutionEnd =>
       val s = OtelSparkListener.activeSqlSpans.remove(e.executionId)
       if (s != null) {
-        // ✅ PRODUCTION: Mark SQL as failed if any child component failed
         if (failedJobCount > 0 || failedStageCount > 0 || failedTaskCount > 0) {
           s.setAttribute("error", true)
           s.setStatus(StatusCode.ERROR, "SQL execution ended with task/stage/job failures")

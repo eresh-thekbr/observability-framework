@@ -19,9 +19,6 @@ class OtelQueryExecutionListener extends QueryExecutionListener {
     try {
       span.setAttribute("spark.sql.query", qe.logical.toString()) // Logical Plan
       span.setAttribute("spark.sql.duration_ms", durationNs / 1000000)
-
-      // Extract metrics from the executed plan (e.g., numOutputRows)
-      // This varies by Spark version, but generally available in executedPlan.metrics
       val metrics = qe.executedPlan.metrics
       metrics.foreach { case (name, metric) =>
         span.setAttribute(s"spark.sql.metric.$name", metric.value)
@@ -31,21 +28,6 @@ class OtelQueryExecutionListener extends QueryExecutionListener {
       span.end()
     }
   }
-
-/*  override def onFailure(funcName: String, qe: QueryExecution, exception: Exception): Unit = {
-    val parentContext = OtelSparkListener.getAppContext
-    val span = tracer.spanBuilder(s"Spark SQL: $funcName")
-      .setParent(parentContext)
-      .startSpan()
-
-    try {
-      span.setAttribute("error", true)
-      span.setAttribute("spark.sql.error.message", exception.getMessage)
-      span.setAttribute("spark.sql.query", qe.logical.toString())
-    } finally {
-      span.end()
-    }
-  }*/
 
   override def onFailure(funcName: String, qe: QueryExecution, exception: Exception): Unit = {
     val parentContext = OtelSparkListener.getAppContext
