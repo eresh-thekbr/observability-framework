@@ -1,0 +1,20 @@
+receivers:
+  apachespark:
+    collection_interval: 10s
+    endpoint: http://localhost:4042
+
+processors:
+  batch:
+
+exporters:
+  datadog/exporter:
+    api:
+      site: datadoghq.com
+      key: 077dc600f6aba67f5bf5131498ea6252
+
+service:
+  pipelines:
+    metrics:
+      receivers: [apachespark]
+      processors: [batch]
+      exporters: [datadog/exporter]

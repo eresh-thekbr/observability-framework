@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Configuration status="WARN" packages="com.example.exporters">
+    <Appenders>
+        <Console name="Console" target="SYSTEM_OUT">
+            <PatternLayout pattern="%d [%t] %-5level %logger{36} - %msg%n"/>
+        </Console>
+
+        <OpenTelemetryAppender name="otelAppender"/>
+    </Appenders>
+
+    <Loggers>
+        <Root level="info">
+            <!--<AppenderRef ref="Console"/> -->
+            <AppenderRef ref="otelAppender"/>
+        </Root>
+    </Loggers>
+</Configuration>
