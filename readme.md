@@ -1,10 +1,14 @@
--Dlog4j.configurationFile=classpath:log4j2.xml
--Dotel.datadog.enabled=true
+# OpenTelemetry Spark Application with Datadog Integration
 
--javaagent:/Users/ereshtayanna/Downloads/opentelemetry-javaagent.jar
--Dotel.javaagent.debug=true
+## Overview
+This project demonstrates how to integrate OpenTelemetry with a Spark application to export traces and metrics. It also includes Datadog integration for monitoring.
 
-
+## Prerequisites
+1. **OpenTelemetry Java Agent**: Download the agent.
+   ```bash
+    -javaagent:/Users/ereshtayanna/Downloads/opentelemetry-javaagent.jar
+    -Dlog4j.configurationFile=classpath:log4j2.xml
+    -Dotel.datadog.enabled=true
 
 ### Install the Spark integration for Datadog Agent
     vi /opt/datadog-agent/etc/conf.d/spark.d/conf.yaml
@@ -20,17 +24,6 @@
     launchctl kickstart -k gui/$(id -u)/com.datadoghq.agent
 
 ### Added below VM options 
-    -Dotel.datadog.enabled=true 
-    -Dlog4j.configurationFile=classpath:log4j2.xml --> Force app to use custom log4j2 config (so we can control appenders/formatting).
-    -Dotel.service.name=otel-fraud-detection-app
-    -Dcom.sun.management.jmxremote
-    -Dcom.sun.management.jmxremote.port=9010
-    -Dcom.sun.management.jmxremote.rmi.port=9010
-    -Dcom.sun.management.jmxremote.authenticate=false
-    -Dcom.sun.management.jmxremote.ssl=false
-    -Djava.rmi.server.hostname=127.0.0.1
-
-    -- Final VM options for Spark Application (Driver / Executors):
     -Dotel.datadog.enabled=true
     -Dlog4j.configurationFile=classpath:log4j2.xml
     -Dspark.app.name=fraud-detection-app
