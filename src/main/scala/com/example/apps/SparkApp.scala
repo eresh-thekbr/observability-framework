@@ -1,44 +1,88 @@
 package com.example.apps
 
-import com.example.listeners.OtelSparkListener
-import org.apache.logging.log4j.LogManager
 import org.apache.spark.sql.SparkSession
-import org.apache.spark.sql.functions.{col, length, upper}
+import org.apache.spark.sql.functions.{col, explode, expr}
 
 object SparkApp {
-//  OtelSparkListener.init_tracer()
-  private val logger = LogManager.getLogger(SparkApp.getClass)
 
   def main(args: Array[String]): Unit = {
-    println("Spark Application Started")
-
     val spark = SparkSession.builder()
-      .appName("Simple Spark App")
+      .appName("OtelSpark JSON Reader")
       .master("local[*]")
-      .config("spark.extraListeners", "com.example.listeners.OtelSparkListener")
-      .config("spark.sql.queryExecutionListeners", "com.example.listeners.OtelQueryExecutionListener")
+      .config("spark.sql.shuffle.partitions", "4")
       .getOrCreate()
 
-    logger.info("Application initialized, ready to process data")
+    spark.sparkContext.setLogLevel("WARN")
 
-    val data = Seq((1, "John"), (2, "Jane"), (3, "Joe"))
-    val df = spark.createDataFrame(data).toDF("id", "name")
-    df.show()
+    // ── Spans ──────────────────────────────────────────────────────────────
+    println("\n=== SPANS ===")
+    val spans = spark.read.json("data/spans.json")
+      .select(explode(col("resourceSpans")).as("rs"))
+      .select(explode(col("rs.scopeSpans")).as("ss"))
+      .select(explode(col("ss.spans")).as("s"))
+      .select(
+        col("s.traceId"),
+        col("s.spanId"),
+        col("s.parentSpanId"),
+        col("s.name"),
+        col("s.startTimeUnixNano"),
+        col("s.endTimeUnixNano")
+      )
+    spans.show(20, truncate = false)
+    println(s"Total spans: ${spans.count()}")
 
-    val cnt = df.count()
-    logger.info(s"DataFrame contains $cnt records")
+    // ── Logs ───────────────────────────────────────────────────────────────
+    // traceId/spanId live inside the attributes array (dd.trace_id / dd.span_id),
+    // not in the top-level OTLP fields.
+    println("\n=== LOGS ===")
+    val logs = spark.read.json("data/logs.json")
+    println(s"Total logs: ${logs.count()}")
 
-    val df1 = df.withColumn("name_upper", upper(col("name")))
-    df1.show()
+    val result = logs
+      .withColumn("resourceLog", explode(col("resourceLogs")))
+      .withColumn("scopeLog", explode(col("resourceLog.scopeLogs")))
+      .withColumn("logRecord", explode(col("scopeLog.logRecords")))
+      .select(
+        col("logRecord.traceId").alias("trace_id"),
+        col("logRecord.spanId").alias("span_id"),
+        col("logRecord.body.stringValue").alias("body"),
+        col("logRecord.severityNumber").alias("severity"),
+        col("logRecord.timeUnixNano").alias("event_time"),
+        col("logRecord.observedTimeUnixNano").alias("observed_time")
+      )
+    val logs_df = result.filter("trace_id is not null")
+    logs_df.show(20, truncate = false)
 
-    val df2 = df1.withColumn("name_length", length(col("name")))
-    val df2_cnt = df2.count()
-    logger.info(s"Transformed DataFrame contains $df2_cnt records")
+    // ── Correlated: logs joined to their span ──────────────────────────────
+    println("\n=== LOGS WITH SPAN NAME (trace correlation) ===")
+    // join logs to spans using trace_id (span_id is optional since not all logs have it, and we can still correlate on trace_id alone)
+    val spans_logs = spans.join(logs_df, spans("traceId") === logs_df("trace_id"), "left")
+      .select(
+        col("traceId"),
+        col("spanId"),
+        col("name").as("spanName"),
+        col("severity"),
+        col("body"),
+        col("event_time"),
+        col("observed_time"),
+        col("startTimeUnixNano"),
+        col("endTimeUnixNano")
+      )
+    spans_logs.show(20, truncate = false)
 
+    // ── Metrics ────────────────────────────────────────────────────────────
+    println("\n=== METRICS ===")
+    val metrics = spark.read.json("data/metrics.json")
+      .select(explode(col("resourceMetrics")).as("rm"))
+      .select(explode(col("rm.scopeMetrics")).as("sm"))
+      .select(explode(col("sm.metrics")).as("m"))
+      .select(
+        col("m.name"),
+        col("m.description")
+      )
+    metrics.show(20, truncate = false)
+    println(s"Total metric series: ${metrics.count()}")
 
-    df.write.mode("overwrite").parquet("data/test_output")
-
-    logger.info("Stopping Spark Application")
     spark.stop()
   }
 }
