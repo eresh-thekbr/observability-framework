@@ -14,7 +14,7 @@ object FraudDetectionApp {
   val serviceName = Option(System.getProperty("otel.service.name"))
     .getOrElse("fraud-detection-app")
   OtelSparkListener.init_tracer(serviceName)
-  private val logger = LogManager.getLogger(SparkApp.getClass)
+  private val logger = LogManager.getLogger("FraudDetectionApp")
 
   def main(args: Array[String]): Unit = {
       val spark = SparkSession.builder()
