@@ -544,6 +544,22 @@ class OtelSparkListener(conf: SparkConf) extends SparkListener {
           markStageFailed(stageId, s"Task ${ti.taskId} failed (missing span)")
         }
     }
+
+    // Shuffle volume per job/stage (ported from feature/otel_collector_json_files)
+    val m = taskEnd.taskMetrics
+    if (m != null) {
+      val jobId = Option(stageToJobId.get(stageId)).map(_.toString).getOrElse("-1")
+      val attrs = Attributes.builder()
+        .put(AttributeKey.stringKey("spark.app.name"), appName)
+        .put(AttributeKey.stringKey("spark.app.id"), appId)
+        .put(AttributeKey.stringKey("spark.job.id"), jobId)
+        .put(AttributeKey.stringKey("spark.stage.id"), stageId.toString)
+        .build()
+      val shuffleRead = m.shuffleReadMetrics.totalBytesRead
+      val shuffleWrite = m.shuffleWriteMetrics.bytesWritten
+      if (shuffleRead > 0) shuffleReadBytes.add(shuffleRead, attrs)
+      if (shuffleWrite > 0) shuffleWriteBytes.add(shuffleWrite, attrs)
+    }
   }
 
 

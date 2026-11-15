@@ -140,6 +140,16 @@ xy("v-slow-stages", "Slowest stages (max duration, s)", DV_TRACES, "bar_horizont
     "d": col_metric("max", "duration_sec", "Max duration (s)")},
    ["n", "d"], "n", ["d"], None, "spark_level : stage")
 
+xy("v-shuffle", "Shuffle bytes written per pipeline", DV_METRICS, "bar_stacked",
+   {"t": col_time(), "s": col_terms("resource.attributes.service.name", "Pipeline", "m", 5),
+    "m": col_metric("sum", "metrics.spark.shuffle.write.bytes", "Shuffle bytes written")},
+   ["s", "t", "m"], "t", ["m"], "s", "metrics.spark.shuffle.write.bytes : *")
+xy("v-flagged", "Flagged transactions (business counter via OtelSpark.count)", DV_METRICS, "bar_stacked",
+   {"t": col_time(), "m": col_metric("sum", "metrics.fraud.flagged.transactions", "Flagged transactions")},
+   ["t", "m"], "t", ["m"], None, "metrics.fraud.flagged.transactions : *")
+saved_search("s-events", "Business events and steps (OtelSpark API)", DV_LOGS, "event_name : * and not event_name : exception",
+             ["resource.attributes.service.name", "event_name", "attributes.count", "attributes.path", "trace_id"])
+
 saved_search("s-errors", "ERROR logs with trace context", DV_LOGS, "severity_text : ERROR",
              ["resource.attributes.service.name", "body.text", "trace_id", "span_id"])
 saved_search("s-failed-spans", "Failed spans (task -> stage -> job -> app)", DV_TRACES, "run_status : FAILED",
@@ -153,7 +163,9 @@ layout = [
     ("v-logs-time", "lens", 0, 20, 24, 13), ("v-sql-ops", "lens", 24, 20, 24, 13),
     ("v-tasks", "lens", 0, 33, 24, 12), ("v-heap", "lens", 24, 33, 24, 12),
     ("v-slow-stages", "lens", 0, 45, 24, 14), ("s-failed-spans", "search", 24, 45, 24, 14),
-    ("s-errors", "search", 0, 59, 48, 15),
+    ("v-shuffle", "lens", 0, 59, 24, 12), ("v-flagged", "lens", 24, 59, 24, 12),
+    ("s-events", "search", 0, 71, 48, 13),
+    ("s-errors", "search", 0, 84, 48, 15),
 ]
 panels, refs = [], []
 for i, (oid, typ, x, y, w, h) in enumerate(layout, 1):

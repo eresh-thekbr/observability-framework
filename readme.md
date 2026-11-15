@@ -12,6 +12,14 @@ backend ([docs/datadog.md](docs/datadog.md)).
 
 ## 1. How it works
 
+New to OpenTelemetry? This one-page explainer covers the building blocks (API, SDK, OTLP,
+Collector, backends), the three signals, and how `trace_id` ties them together. Each block is
+mapped to where it lives in this project:
+
+![How OpenTelemetry works](docs/how-opentelemetry-works.svg)
+
+How this framework uses those blocks, end to end:
+
 ![How telemetry flows through the framework](docs/telemetry-flow.svg)
 
 | Step | Component | What it does |
@@ -63,7 +71,8 @@ driver (a `Spark Driver Failure` span is recorded in that case).
 before the application span exists (JVM and Spark start-up) have no trace context.
 
 **Metrics** carry no `trace_id` (by the OTel spec they are aggregated time series). They are
-linked to runs by `service.name` and `spark.app.id`, and by time.
+linked to runs by `service.name` and `spark.app.id`, and by time. Shuffle bytes
+(`spark.shuffle.read.bytes` / `write.bytes`) also carry `spark.job.id` and `spark.stage.id`.
 
 ## 2. What you get
 
@@ -81,10 +90,50 @@ Kibana dashboard **Spark Observability (OpenTelemetry)**:
 | Spark SQL executions by operation | How much of the work is shuffles, joins and writes? |
 | Slowest stages | Which line of code is the bottleneck (`count at PipelineSimulator.scala:84`)? |
 | Running Spark tasks · JVM heap used | Parallelism and memory pressure per pipeline |
+| Shuffle bytes written per pipeline | Which pipeline moves the most data between stages? |
+| Flagged transactions | A business KPI, recorded from application code with `OtelSpark.count` |
+| Business events and steps | Milestones such as `sanctions.hits`, recorded with `OtelSpark.event` |
 | Failed spans | The failing task → stage → job → app chain |
 | ERROR logs with trace context | The exception text, with the `trace_id` that leads to the trace |
 
-## 3. Run it
+## 3. Add business context from your code
+
+The listener records Spark's execution automatically. To add **what the job means**, application
+code calls the small public API in the same jar,
+[`com.example.otel.OtelSpark`](src/main/scala/com/example/otel/OtelSpark.scala):
+
+```scala
+import com.example.otel.OtelSpark
+
+OtelSpark.attribute("business.date", "2024-06-01")            // tag the whole run (application span)
+
+val flagged = OtelSpark.step("sanctions-screening") {           // custom span around a business step
+  val n = enriched.join(broadcast(blacklist), "account_id").count()
+  OtelSpark.event("sanctions.hits", "count" -> n)               // timestamped event on the current span
+  n
+}
+
+OtelSpark.count("fraud.flagged.transactions", flagged)          // business counter (metric)
+```
+
+Java:
+
+```java
+OtelSpark.event("sanctions.hits", Map.of("count", n));
+long n = OtelSpark.step("sanctions-screening", () -> flagged.count());
+```
+
+| Call | Becomes | Where to see it in Kibana |
+|---|---|---|
+| `attribute(k, v)` | attribute on the application span | Spark traces: `attributes.business.date : "2024-06-01"` |
+| `step(name) { ... }` | child span of the application; ERROR plus root cause if the block throws | Spark traces: `attributes.otelspark.step : true` |
+| `event(name, k -> v, ...)` | span event (Elasticsearch stores it as a log document with `event_name`) | Spark logs: `event_name : "sanctions.hits"` |
+| `count(name, n, k -> v)` | monotonic counter | Spark metrics: `metrics.fraud.flagged.transactions` |
+
+Every call is a no-op when OpenTelemetry isn't configured, so the calls can stay in production
+code. `PipelineSimulator` uses all four.
+
+## 4. Run it
 
 Requires Docker Desktop with about 6 GB of memory available.
 
@@ -98,12 +147,13 @@ make down    # stop everything and delete the data
 Full steps, the interview demo script, configuration and troubleshooting:
 **[EXECUTION.md](EXECUTION.md)**.
 
-## 4. Project layout
+## 5. Project layout
 
 ```
 src/main/scala/com/example/
   listeners/OtelSparkListener.scala          Spark events → spans, gauges, failure propagation
   listeners/OtelQueryExecutionListener.scala optional: per-query span with logical plan + SQL metrics
+  otel/OtelSpark.scala                       public API: attribute, step, event, count
   exporters/OpenTelemetryAppender.scala      log4j2 → OTel logs with trace_id / span_id
   exporters/{File,Log,MetricFile}Exporter    SDK file exporters for runs without a collector
   apps/PipelineSimulator.scala               live traffic: 3 pipelines × normal / skew / failure
@@ -116,10 +166,10 @@ kibana/build_dashboard.py                    dashboard as code → spark-observa
 docker-compose.yml · Dockerfile · Makefile   the whole stack
 docker/run-job.sh · docker/traffic-loop.sh   JVM + agent launcher, simulator loop
 scripts/                                     Kibana import, sample data, outcome.svg renderer
-docs/                                        diagrams, Datadog notes
+docs/                                        diagrams, presentation notes, Datadog notes
 ```
 
-## 5. Design decisions and limits
+## 6. Design decisions and limits
 
 - **Listener + agent instead of agent alone.** The Java agent knows nothing about Spark's
   scheduler, and the listener knows nothing about exporting. With the agent installed, the
@@ -137,7 +187,9 @@ docs/                                        diagrams, Datadog notes
 - **Driver only.** In `local` mode the driver and executors share one JVM. On a cluster, attach
   the agent to the executors too (`spark.executor.extraJavaOptions=-javaagent:...`) so that
   executor logs and JVM metrics are exported.
-- **`spark.shuffle.read.bytes` / `write.bytes` counters are declared but not yet recorded.**
-  The values are available in `onTaskEnd` from `taskMetrics.shuffleReadMetrics`.
+- **Spark jobs started inside an `OtelSpark.step` are not nested under the step span.** The
+  listener runs on Spark's listener-bus thread, not the caller's, so jobs attach to the SQL or
+  application span. The step's start and end times still bracket them in the waterfall.
+  Passing the step context through a Spark local property would fix this.
 - **Local-only security.** Elasticsearch security is disabled in `docker-compose.yml`. Enable
   TLS and authentication for anything shared.

@@ -1,0 +1,217 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="850" viewBox="0 0 1400 850" color="#1b2230" font-family="Helvetica, Arial, sans-serif" role="img" aria-label="How OpenTelemetry works. Inside the application, code calls the OpenTelemetry API; the SDK adds sampling, batching and resource attributes; an exporter sends the data over OTLP to the OpenTelemetry Collector, whose pipelines run receivers, processors and exporters and forward to any backend such as Elasticsearch and Kibana or Datadog. There are three signals: traces made of spans, metrics as aggregated time series, and logs. The trace_id carried by every span and log of one run is what links them together.">
+  <defs>
+    <marker id="g" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#5b6576"/></marker>
+    <marker id="p" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#7c3aed"/></marker>
+  </defs>
+  <rect x="0" y="0" width="1400" height="850" fill="#f6f7f9"/>
+
+  <text x="24" y="40" font-size="18" font-weight="bold">How OpenTelemetry works — the building blocks, and where each one lives in this project</text>
+  <text x="24" y="62" font-size="12" fill="#5b6576">OpenTelemetry (OTel) is a vendor-neutral standard: one API to produce telemetry, one wire protocol (OTLP) to ship it, and a Collector to route it to any backend.</text>
+  <g font-size="11.5">
+    <rect x="1050" y="31" width="12" height="12" rx="2" fill="#eef3ff" stroke="#2563eb"/><text x="1068" y="41">used in this project</text>
+    <rect x="1198" y="31" width="12" height="12" rx="2" fill="#ffffff" stroke="#c7cdd6"/><text x="1216" y="41">other common options</text>
+  </g>
+
+  <!-- 1. Instrument -->
+  <rect x="24" y="90" width="400" height="320" rx="10" fill="#ffffff" stroke="#9aa3b2"/>
+  <text x="40" y="114" font-size="11" font-weight="bold" fill="#5b6576" letter-spacing="1.2">1 · INSTRUMENT — INSIDE YOUR PROCESS</text>
+
+  <rect x="44" y="126" width="360" height="52" rx="7" fill="#f8f9fb" stroke="#c7cdd6"/>
+  <text x="58" y="146" font-size="13" font-weight="bold">Your code</text>
+  <text x="58" y="166" font-size="10.5" fill="#5b6576">here: Spark jobs, <tspan font-family="Menlo, Consolas, monospace">OtelSparkListener</tspan> callbacks, <tspan font-family="Menlo, Consolas, monospace">logger.info</tspan></text>
+  <line x1="224" y1="178" x2="224" y2="190" stroke="#5b6576" stroke-width="1.5" marker-end="url(#g)"/>
+
+  <rect x="44" y="192" width="360" height="56" rx="7" fill="#eef3ff" stroke="#2563eb"/>
+  <text x="58" y="211" font-size="13" font-weight="bold">API <tspan font-size="10.5" font-weight="normal" fill="#5b6576">— what code calls; a no-op until an SDK is present</tspan></text>
+  <text x="58" y="229" font-size="10.5" font-family="Menlo, Consolas, monospace">tracer.spanBuilder("Spark Job: 3")</text>
+  <text x="58" y="242" font-size="10.5" font-family="Menlo, Consolas, monospace">meter.gaugeBuilder(...) · logger.logRecordBuilder()</text>
+  <line x1="224" y1="248" x2="224" y2="260" stroke="#5b6576" stroke-width="1.5" marker-end="url(#g)"/>
+
+  <rect x="44" y="262" width="360" height="66" rx="7" fill="#eef3ff" stroke="#2563eb"/>
+  <text x="58" y="281" font-size="13" font-weight="bold">SDK <tspan font-size="10.5" font-weight="normal" fill="#5b6576">— the implementation behind the API</tspan></text>
+  <text x="58" y="299" font-size="10.5">Tracer / Meter / Logger providers · sampler</text>
+  <text x="58" y="314" font-size="10.5">batch processor · <tspan font-weight="bold">Resource</tspan> (service.name, host, container)</text>
+  <line x1="224" y1="328" x2="224" y2="340" stroke="#5b6576" stroke-width="1.5" marker-end="url(#g)"/>
+
+  <rect x="44" y="342" width="360" height="40" rx="7" fill="#eef3ff" stroke="#2563eb"/>
+  <text x="58" y="360" font-size="13" font-weight="bold">Exporter</text>
+  <text x="130" y="360" font-size="10.5" fill="#5b6576">encodes and sends: here OTLP gRPC</text>
+  <text x="58" y="375" font-size="10.5" fill="#5b6576">(alternatives: file, console, vendor-specific)</text>
+  <text x="44" y="400" font-size="10.5" fill="#2563eb">Here the <tspan font-weight="bold">OTel Java agent</tspan> supplies SDK + exporter + JVM metrics</text>
+
+  <!-- 2. OTLP wire -->
+  <line x1="404" y1="362" x2="522" y2="362" stroke="#5b6576" stroke-width="2.5" marker-end="url(#g)"/>
+  <text x="474" y="338" font-size="11" font-weight="bold" fill="#5b6576" text-anchor="middle" letter-spacing="1.2">2 · OTLP</text>
+  <text x="474" y="354" font-size="10.5" text-anchor="middle" fill="#5b6576">protobuf</text>
+  <text x="474" y="380" font-size="10.5" text-anchor="middle" font-family="Menlo, Consolas, monospace">gRPC :4317</text>
+  <text x="474" y="394" font-size="10.5" text-anchor="middle" font-family="Menlo, Consolas, monospace">HTTP :4318</text>
+
+  <!-- 3. Collector -->
+  <rect x="524" y="90" width="460" height="320" rx="10" fill="#ffffff" stroke="#9aa3b2"/>
+  <text x="540" y="114" font-size="11" font-weight="bold" fill="#5b6576" letter-spacing="1.2">3 · COLLECT — OPENTELEMETRY COLLECTOR</text>
+  <text x="540" y="131" font-size="10.5" fill="#5b6576">a separate service; config: <tspan font-family="Menlo, Consolas, monospace">otel/otel-config.yaml</tspan></text>
+
+  <g font-size="10.5" font-family="Menlo, Consolas, monospace">
+    <rect x="544" y="146" width="128" height="196" rx="7" fill="#f8f9fb" stroke="#c7cdd6"/>
+    <text x="608" y="166" text-anchor="middle" font-size="12" font-weight="bold" font-family="Helvetica, Arial, sans-serif">Receivers</text>
+    <text x="608" y="180" text-anchor="middle" font-size="10" fill="#5b6576" font-family="Helvetica, Arial, sans-serif">data in</text>
+    <rect x="556" y="190" width="104" height="20" rx="4" fill="#eef3ff" stroke="#2563eb"/><text x="608" y="204" text-anchor="middle" font-weight="bold" fill="#2563eb">otlp</text>
+    <text x="608" y="230" text-anchor="middle" fill="#5b6576">prometheus</text>
+    <text x="608" y="250" text-anchor="middle" fill="#5b6576">filelog</text>
+    <text x="608" y="270" text-anchor="middle" fill="#5b6576">kafka</text>
+    <text x="608" y="290" text-anchor="middle" fill="#5b6576">jaeger</text>
+
+    <rect x="690" y="146" width="128" height="196" rx="7" fill="#f8f9fb" stroke="#c7cdd6"/>
+    <text x="754" y="166" text-anchor="middle" font-size="12" font-weight="bold" font-family="Helvetica, Arial, sans-serif">Processors</text>
+    <text x="754" y="180" text-anchor="middle" font-size="10" fill="#5b6576" font-family="Helvetica, Arial, sans-serif">transform in flight</text>
+    <rect x="702" y="190" width="104" height="20" rx="4" fill="#eef3ff" stroke="#2563eb"/><text x="754" y="204" text-anchor="middle" font-weight="bold" fill="#2563eb">batch</text>
+    <text x="754" y="230" text-anchor="middle" fill="#5b6576">memory_limiter</text>
+    <text x="754" y="250" text-anchor="middle" fill="#5b6576">attributes</text>
+    <text x="754" y="270" text-anchor="middle" fill="#5b6576">filter</text>
+    <text x="754" y="290" text-anchor="middle" fill="#5b6576">tail_sampling</text>
+
+    <rect x="836" y="146" width="128" height="196" rx="7" fill="#f8f9fb" stroke="#c7cdd6"/>
+    <text x="900" y="166" text-anchor="middle" font-size="12" font-weight="bold" font-family="Helvetica, Arial, sans-serif">Exporters</text>
+    <text x="900" y="180" text-anchor="middle" font-size="10" fill="#5b6576" font-family="Helvetica, Arial, sans-serif">data out</text>
+    <rect x="848" y="190" width="104" height="20" rx="4" fill="#eef3ff" stroke="#2563eb"/><text x="900" y="204" text-anchor="middle" font-weight="bold" fill="#2563eb">elasticsearch</text>
+    <rect x="848" y="216" width="104" height="20" rx="4" fill="#eef3ff" stroke="#2563eb"/><text x="900" y="230" text-anchor="middle" font-weight="bold" fill="#2563eb">file</text>
+    <text x="900" y="256" text-anchor="middle" fill="#5b6576">datadog</text>
+    <text x="900" y="276" text-anchor="middle" fill="#5b6576">otlp</text>
+    <text x="900" y="296" text-anchor="middle" fill="#5b6576">prometheus</text>
+  </g>
+  <line x1="672" y1="244" x2="688" y2="244" stroke="#5b6576" stroke-width="1.5" marker-end="url(#g)"/>
+  <line x1="818" y1="244" x2="834" y2="244" stroke="#5b6576" stroke-width="1.5" marker-end="url(#g)"/>
+  <text x="754" y="366" font-size="11" text-anchor="middle">One <tspan font-weight="bold">pipeline per signal</tspan>: traces, metrics, logs</text>
+  <text x="754" y="383" font-size="10.5" text-anchor="middle" font-family="Menlo, Consolas, monospace" fill="#5b6576">receivers → processors → exporters</text>
+  <text x="754" y="399" font-size="10.5" text-anchor="middle" fill="#5b6576">swap the backend by editing config, not application code</text>
+
+  <!-- 4. Backends -->
+  <rect x="1044" y="90" width="332" height="320" rx="10" fill="#ffffff" stroke="#9aa3b2"/>
+  <text x="1060" y="114" font-size="11" font-weight="bold" fill="#5b6576" letter-spacing="1.2">4 · STORE &amp; ANALYZE — ANY BACKEND</text>
+  <rect x="1064" y="132" width="292" height="50" rx="7" fill="#eef3ff" stroke="#2563eb"/>
+  <text x="1078" y="152" font-size="13" font-weight="bold">Elasticsearch + Kibana</text>
+  <text x="1078" y="170" font-size="10.5" fill="#5b6576">here: data streams + the Spark dashboard</text>
+  <rect x="1064" y="192" width="292" height="40" rx="7" fill="#eef3ff" stroke="#2563eb"/>
+  <text x="1078" y="210" font-size="12" font-weight="bold">Raw OTLP JSON files</text>
+  <text x="1078" y="225" font-size="10.5" fill="#5b6576">here: <tspan font-family="Menlo, Consolas, monospace">./data/*.json</tspan>, read back by SparkApp</text>
+  <rect x="1064" y="242" width="292" height="36" rx="7" fill="#ffffff" stroke="#c7cdd6" stroke-dasharray="5 3"/>
+  <text x="1078" y="265" font-size="12">Datadog <tspan font-size="10.5" fill="#5b6576">— optional, one config file away</tspan></text>
+  <rect x="1064" y="286" width="292" height="36" rx="7" fill="#ffffff" stroke="#c7cdd6"/>
+  <text x="1078" y="309" font-size="12">Jaeger · Grafana Tempo <tspan font-size="10.5" fill="#5b6576">— traces</tspan></text>
+  <rect x="1064" y="330" width="292" height="36" rx="7" fill="#ffffff" stroke="#c7cdd6"/>
+  <text x="1078" y="353" font-size="12">Prometheus · Grafana <tspan font-size="10.5" fill="#5b6576">— metrics</tspan></text>
+  <text x="1064" y="392" font-size="10.5" fill="#5b6576">all of them accept OTLP or have a collector exporter</text>
+  <path d="M964,200 C1004,200 1024,157 1062,157" fill="none" stroke="#2563eb" stroke-width="1.8" marker-end="url(#g)"/>
+  <path d="M964,226 C1004,226 1024,212 1062,212" fill="none" stroke="#2563eb" stroke-width="1.8" marker-end="url(#g)"/>
+  <path d="M964,252 C1004,252 1024,260 1062,260" fill="none" stroke="#9aa3b2" stroke-width="1.5" stroke-dasharray="5 3" marker-end="url(#g)">
+    <animate attributeName="stroke-dashoffset" values="16;0" dur="1s" repeatCount="indefinite"/>
+  </path>
+
+  <!-- 5. Signals + context -->
+  <text x="24" y="448" font-size="11" font-weight="bold" fill="#5b6576" letter-spacing="1.2">5 · THE THREE SIGNALS — AND THE CONTEXT THAT GLUES THEM</text>
+
+  <!-- Traces -->
+  <rect x="24" y="460" width="440" height="300" rx="10" fill="#ffffff" stroke="#2563eb" stroke-width="1.5"/>
+  <text x="40" y="484" font-size="14" font-weight="bold" fill="#2563eb">Traces</text>
+  <text x="100" y="484" font-size="11" fill="#5b6576">what happened, in what order, how long, did it fail</text>
+  <text x="40" y="504" font-size="10.5" fill="#5b6576">A trace is a tree of <tspan font-weight="bold" fill="#1b2230">spans</tspan> sharing one trace_id; each span names its parent.</text>
+  <g font-size="10.5" font-family="Menlo, Consolas, monospace">
+    <text x="40" y="530">Spark Application</text>
+    <rect x="200" y="520" width="248" height="13" rx="3" fill="#2563eb" opacity="0.8"/>
+    <text x="54" y="552">Spark JOIN: count</text>
+    <rect x="236" y="542" width="170" height="13" rx="3" fill="#2563eb" opacity="0.8"/>
+    <text x="68" y="574">Spark Job: 3</text>
+    <rect x="262" y="564" width="120" height="13" rx="3" fill="#2563eb" opacity="0.8"/>
+    <text x="82" y="596">Spark Stage: 4</text>
+    <rect x="270" y="586" width="106" height="13" rx="3" fill="#2563eb" opacity="0.8"/>
+    <text x="96" y="618" fill="#dc2626">Spark Task: 17 ✗</text>
+    <rect x="280" y="608" width="60" height="13" rx="3" fill="#dc2626"/>
+  </g>
+  <rect x="40" y="636" width="408" height="110" rx="6" fill="#f8f9fb" stroke="#e1e5eb"/>
+  <text x="52" y="655" font-size="11" font-weight="bold">A span carries</text>
+  <g font-size="10.5" font-family="Menlo, Consolas, monospace">
+    <text x="52" y="673"><tspan fill="#7c3aed" font-weight="bold">trace_id</tspan>   4bf92f3577b34da6a3ce929d0e0e4736</text>
+    <text x="52" y="689"><tspan fill="#7c3aed" font-weight="bold">span_id</tspan>    00f067aa0ba902b7  <tspan fill="#5b6576">parent_span_id ...</tspan></text>
+    <text x="52" y="705">name · kind · start · end · <tspan font-weight="bold">status</tspan> (OK / ERROR)</text>
+    <text x="52" y="721">attributes  spark.stage.id=4, spark.task.host=...</text>
+    <text x="52" y="737">events      sanctions.hits{count=21532}, exception</text>
+  </g>
+
+  <!-- Metrics -->
+  <rect x="480" y="460" width="440" height="300" rx="10" fill="#ffffff" stroke="#d97706" stroke-width="1.5"/>
+  <text x="496" y="484" font-size="14" font-weight="bold" fill="#d97706">Metrics</text>
+  <text x="560" y="484" font-size="11" fill="#5b6576">numbers over time, cheap to keep for months</text>
+  <text x="496" y="504" font-size="10.5" fill="#5b6576">Aggregated time series. No trace_id; linked to runs by Resource attributes.</text>
+  <!-- counter -->
+  <text x="496" y="530" font-size="11.5" font-weight="bold">Counter</text>
+  <text x="560" y="530" font-size="10.5" fill="#5b6576">only goes up</text>
+  <text x="496" y="545" font-size="10" font-family="Menlo, Consolas, monospace">spark.shuffle.read.bytes</text>
+  <polyline points="700,548 730,544 760,536 790,528 820,520 850,515 880,508 904,503" fill="none" stroke="#d97706" stroke-width="2"/>
+  <!-- gauge -->
+  <text x="496" y="590" font-size="11.5" font-weight="bold">Gauge</text>
+  <text x="550" y="590" font-size="10.5" fill="#5b6576">value right now</text>
+  <text x="496" y="605" font-size="10" font-family="Menlo, Consolas, monospace">spark.tasks.running</text>
+  <polyline points="700,610 720,610 730,580 760,580 770,596 800,596 810,575 840,575 850,610 904,610" fill="none" stroke="#d97706" stroke-width="2"/>
+  <!-- histogram -->
+  <text x="496" y="650" font-size="11.5" font-weight="bold">Histogram</text>
+  <text x="572" y="650" font-size="10.5" fill="#5b6576">distribution</text>
+  <text x="496" y="665" font-size="10" font-family="Menlo, Consolas, monospace">jvm.gc.duration</text>
+  <g fill="#d97706" opacity="0.85">
+    <rect x="712" y="652" width="20" height="18"/><rect x="736" y="636" width="20" height="34"/><rect x="760" y="626" width="20" height="44"/>
+    <rect x="784" y="642" width="20" height="28"/><rect x="808" y="656" width="20" height="14"/><rect x="832" y="662" width="20" height="8"/>
+    <rect x="856" y="666" width="20" height="4"/>
+  </g>
+  <rect x="496" y="690" width="408" height="56" rx="6" fill="#f8f9fb" stroke="#e1e5eb"/>
+  <text x="508" y="709" font-size="10.5">Here: listener gauges + counters, and JVM heap / GC / threads</text>
+  <text x="508" y="725" font-size="10.5">from the agent, exported every 5 s as <tspan font-family="Menlo, Consolas, monospace">delta</tspan>, tagged with</text>
+  <text x="508" y="741" font-size="10.5" font-family="Menlo, Consolas, monospace">service.name · spark.app.id · spark.stage.id</text>
+
+  <!-- Logs -->
+  <rect x="936" y="460" width="440" height="300" rx="10" fill="#ffffff" stroke="#16a34a" stroke-width="1.5"/>
+  <text x="952" y="484" font-size="14" font-weight="bold" fill="#16a34a">Logs</text>
+  <text x="996" y="484" font-size="11" fill="#5b6576">the details: messages, exceptions</text>
+  <text x="952" y="504" font-size="10.5" fill="#5b6576">A log record with context becomes searchable by the run it belongs to.</text>
+  <g font-size="10" font-family="Menlo, Consolas, monospace">
+    <rect x="952" y="516" width="408" height="58" rx="5" fill="#f8f9fb" stroke="#e1e5eb"/>
+    <text x="962" y="532"><tspan fill="#16a34a" font-weight="bold">INFO</tspan>  Generated 802617 card transactions</text>
+    <text x="962" y="548"><tspan fill="#d97706" font-weight="bold">WARN</tspan>  14716 transactions matched sanctions list</text>
+    <text x="962" y="564"><tspan fill="#dc2626" font-weight="bold">ERROR</tspan> Pipeline FAILED: Corrupt record at row ...</text>
+  </g>
+  <rect x="952" y="586" width="408" height="96" rx="6" fill="#f8f9fb" stroke="#e1e5eb"/>
+  <text x="964" y="605" font-size="11" font-weight="bold">A log record carries</text>
+  <g font-size="10.5" font-family="Menlo, Consolas, monospace">
+    <text x="964" y="623">timestamp · severity_text · body</text>
+    <text x="964" y="639">attributes  logger.name, thread.name</text>
+    <text x="964" y="655"><tspan fill="#7c3aed" font-weight="bold">trace_id</tspan>    4bf92f3577b34da6a3ce929d0e0e4736</text>
+    <text x="964" y="671"><tspan fill="#7c3aed" font-weight="bold">span_id</tspan>     00f067aa0ba902b7</text>
+  </g>
+  <text x="952" y="702" font-size="10.5">Here: log4j2 → <tspan font-family="Menlo, Consolas, monospace">OpenTelemetryAppender</tspan> stamps the</text>
+  <text x="952" y="718" font-size="10.5">run's trace_id on every line (the agent's own log</text>
+  <text x="952" y="734" font-size="10.5">capture is off, so nothing is logged twice).</text>
+
+  <!-- Context glue -->
+  <path d="M244,762 L244,793 L516,793" fill="none" stroke="#7c3aed" stroke-width="2" stroke-dasharray="6 4">
+    <animate attributeName="stroke-dashoffset" values="20;0" dur="1.2s" repeatCount="indefinite"/>
+  </path>
+  <path d="M884,793 L1156,793 L1156,764" fill="none" stroke="#7c3aed" stroke-width="2" stroke-dasharray="6 4" marker-end="url(#p)">
+    <animate attributeName="stroke-dashoffset" values="20;0" dur="1.2s" repeatCount="indefinite"/>
+  </path>
+  <rect x="520" y="776" width="360" height="34" rx="17" fill="#f3edff" stroke="#7c3aed"/>
+  <text x="700" y="798" font-size="12" text-anchor="middle" fill="#5b21b6"><tspan font-weight="bold">Context</tspan>: same trace_id in spans and logs = one story</text>
+  <text x="24" y="834" font-size="11" fill="#5b6576">Resource attributes (<tspan font-family="Menlo, Consolas, monospace">service.name</tspan>, host, container, <tspan font-family="Menlo, Consolas, monospace">deployment.environment</tspan>) are attached to all three signals, which is how metrics join the story. Query in Kibana: <tspan font-family="Menlo, Consolas, monospace">trace_id : "4bf9…"</tspan></text>
+
+  <g id="moving-events">
+    <circle r="5.5" fill="#2563eb" stroke="#ffffff" stroke-width="1.5" opacity="0">
+      <animateMotion path="M224,152 L224,220 L224,295 L224,362 L540,362 L608,244 L754,244 L900,200 L1062,157" dur="6s" begin="0s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" values="0;1;1;0;0" keyTimes="0;0.03;0.95;1;1" dur="6s" begin="0s" repeatCount="indefinite"/>
+    </circle>
+    <circle r="5.5" fill="#16a34a" stroke="#ffffff" stroke-width="1.5" opacity="0">
+      <animateMotion path="M224,152 L224,220 L224,295 L224,362 L540,362 L608,244 L754,244 L900,200 L1062,157" dur="6s" begin="2s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" values="0;1;1;0;0" keyTimes="0;0.03;0.95;1;1" dur="6s" begin="2s" repeatCount="indefinite"/>
+    </circle>
+    <circle r="5.5" fill="#d97706" stroke="#ffffff" stroke-width="1.5" opacity="0">
+      <animateMotion path="M224,152 L224,220 L224,295 L224,362 L540,362 L608,244 L754,244 L900,226 L1062,212" dur="6s" begin="4s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" values="0;1;1;0;0" keyTimes="0;0.03;0.95;1;1" dur="6s" begin="4s" repeatCount="indefinite"/>
+    </circle>
+  </g>
+</svg>

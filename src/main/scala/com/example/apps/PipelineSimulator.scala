@@ -1,6 +1,7 @@
 package com.example.apps
 
 import com.example.listeners.OtelSparkListener
+import com.example.otel.OtelSpark
 import org.apache.logging.log4j.LogManager
 import org.apache.spark.sql.expressions.Window
 import org.apache.spark.sql.functions._
@@ -39,6 +40,8 @@ object PipelineSimulator {
       .getOrCreate()
 
     logger.info(s"Starting pipeline=$pipeline scenario=$scenario rows=$rows")
+    OtelSpark.attribute("pipeline.scenario", scenario)
+    OtelSpark.attribute("pipeline.input.rows", rows)
     val t0 = System.currentTimeMillis()
     var exitCode = 0
     try {
@@ -73,8 +76,12 @@ object PipelineSimulator {
     logger.info(s"Generated $rows card transactions")
 
     val enriched = txns.join(accounts, "account_id")
-    val flagged = enriched.join(broadcast(blacklist), "account_id")
-    val flaggedCount = flagged.count()
+    val flaggedCount = OtelSpark.step("sanctions-screening", "list" -> "internal-blacklist") {
+      val n = enriched.join(broadcast(blacklist), "account_id").count()
+      OtelSpark.event("sanctions.hits", "count" -> n, "list" -> "internal-blacklist")
+      n
+    }
+    OtelSpark.count("fraud.flagged.transactions", flaggedCount, "pipeline" -> "fraud-detection")
     logger.info(s"Sanctions screening flagged $flaggedCount transactions")
     if (flaggedCount > 0) logger.warn(s"$flaggedCount transactions matched the sanctions list and were held")
 
@@ -85,12 +92,15 @@ object PipelineSimulator {
       .count()
     logger.info(s"Rapid-fire detector found $rapid suspicious transactions")
 
+    OtelSpark.step("exposure-report") {
     val exposure = guard(enriched, scenario)
       .filter($"amount" > 4000)
       .groupBy("country")
       .agg(count("*").as("txn_count"), sum("amount").as("total_volume"))
       .orderBy(desc("total_volume"))
     exposure.write.mode(SaveMode.Overwrite).parquet("/tmp/output/fraud_exposure")
+    OtelSpark.event("report.published", "path" -> "/tmp/output/fraud_exposure")
+    }
     logger.info("High-value exposure by country written")
   }
 
@@ -111,7 +121,9 @@ object PipelineSimulator {
       .withColumn("next_event", lead("event_type", 1).over(w))
       .filter($"event_type" === "cart" && ($"next_event".isNull || $"next_event" =!= "purchase"))
       .groupBy("brand").agg(count("*").as("abandoned_carts"), avg("amount").as("avg_cart_value"))
-    logger.info(s"Abandoned-cart brands: ${abandoned.count()}")
+    val abandonedBrands = abandoned.count()
+    OtelSpark.event("funnel.abandoned_carts.computed", "brands" -> abandonedBrands)
+    logger.info(s"Abandoned-cart brands: $abandonedBrands")
 
     val kpi = guard(events, scenario)
       .groupBy("brand").pivot("event_type", Seq("view", "cart", "purchase")).agg(count("amount")).na.fill(0)
@@ -130,7 +142,8 @@ object PipelineSimulator {
       .groupBy("account_id")
       .agg(sum("exposure").as("total_exposure"), max("exposure").as("max_single"), count("*").as("positions"))
       .orderBy(desc("total_exposure"))
-    val top = byAccount.limit(20).collect()
+    val top = OtelSpark.step("risk-rollup") { byAccount.limit(20).collect() }
+    OtelSpark.count("risk.accounts.ranked", top.length.toLong, "pipeline" -> "risk-aggregation")
     logger.info(s"Top risk account ${top.headOption.map(_.get(0)).getOrElse("n/a")} across ${byAccount.count()} accounts")
     if (scenario == "skew") logger.warn("Partition imbalance detected: one account holds most positions")
   }

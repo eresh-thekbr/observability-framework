@@ -29,7 +29,7 @@ Expected ending:
 
 ```
 waiting for Kibana at http://localhost:5601 ...... up
-"successCount":17
+"successCount":20
 Dashboard: http://localhost:5601/app/dashboards#/view/spark-observability
 ```
 
@@ -89,6 +89,8 @@ Useful queries in **Discover** (choose the data view first):
 | Spark traces | `spark_level : task and duration_sec > 1` | straggler tasks |
 | Spark logs | `severity_text : ERROR` | errors, each with its `trace_id` |
 | Spark logs | `trace_id : "<id>"` | every log line of one run |
+| Spark logs | `event_name : "sanctions.hits"` | business events recorded with `OtelSpark.event` |
+| Spark traces | `attributes.otelspark.step : true` | business steps recorded with `OtelSpark.step` |
 | Spark metrics | `metrics.spark.tasks.running : *` | parallelism over time |
 
 `spark_level`, `run_status` and `duration_sec` are runtime fields defined on the
@@ -106,7 +108,9 @@ Useful queries in **Discover** (choose the data view first):
    `status.code: Error`.
 5. **Same id, logs.** In Discover (Spark logs), run `trace_id : "<id>"` to see the full story of
    that run, ending with `Pipeline … FAILED … Corrupt record …`.
-6. **Talk about limits.** README section 5: task-span volume, executor agents, MDC for per-job
+6. **Business context.** Show the *Business events and steps* panel and the `OtelSpark` API
+   (README section 3): one line of code adds an event, a step span or a KPI counter.
+7. **Talk about limits.** README section 6: task-span volume, executor agents, MDC for per-job
    log linking.
 
 ## 5. Raw OTLP files and the Spark reader
