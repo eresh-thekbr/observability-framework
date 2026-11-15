@@ -408,6 +408,7 @@ class OtelSparkListener(conf: SparkConf) extends SparkListener {
             case other =>
               failedJobCount += 1
               val reason = other.toString
+              markJobFailed(jobEnd.jobId, reason) // propagates to the SQL execution that ran this job
               span.setAttribute("spark.job.status", "failed")
               span.setAttribute("error", true)
               span.setStatus(StatusCode.ERROR, reason)
@@ -744,7 +745,8 @@ class OtelSparkListener(conf: SparkConf) extends SparkListener {
     case e: SparkListenerSQLExecutionEnd =>
       val s = OtelSparkListener.activeSqlSpans.remove(e.executionId)
       if (s != null) {
-        if (failedJobCount > 0 || failedStageCount > 0 || failedTaskCount > 0) {
+        // Only this SQL execution's own jobs count; earlier failures in the app must not taint later queries
+        if (failedSqlExecutionIds.contains(e.executionId)) {
           s.setAttribute("error", true)
           s.setStatus(StatusCode.ERROR, "SQL execution ended with task/stage/job failures")
           logger.error(s"[OtelSparkListener] SQL Execution ${e.executionId} FAILED due to child component failures")

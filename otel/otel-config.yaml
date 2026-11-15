@@ -1,31 +1,41 @@
+# OpenTelemetry Collector pipeline (runs inside docker-compose as otel-collector).
+# Every signal is fanned out to two sinks:
+#   1. Elasticsearch (searched and visualised in Kibana)
+#   2. Raw OTLP JSON files in ./data  (read back by com.example.apps.SparkApp)
 receivers:
   otlp:
     protocols:
       grpc:
         endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
 
 processors:
   batch: {}
 
 exporters:
+  elasticsearch:
+    endpoint: http://elasticsearch:9200
+    mapping:
+      mode: otel            # OTel-native data streams: traces-generic.otel-default, logs-..., metrics-...
   file/traces:
-    path: /Users/ereshtayanna/IdeaProjects/OtelSpark/data/spans.json
+    path: /data/spans.json
   file/logs:
-    path: /Users/ereshtayanna/IdeaProjects/OtelSpark/data/logs.json
+    path: /data/logs.json
   file/metrics:
-    path: /Users/ereshtayanna/IdeaProjects/OtelSpark/data/metrics.json
+    path: /data/metrics.json
 
 service:
   pipelines:
     traces:
       receivers: [otlp]
       processors: [batch]
-      exporters: [file/traces]
+      exporters: [elasticsearch, file/traces]
     logs:
       receivers: [otlp]
       processors: [batch]
-      exporters: [file/logs]
+      exporters: [elasticsearch, file/logs]
     metrics:
       receivers: [otlp]
       processors: [batch]
-      exporters: [file/metrics]
+      exporters: [elasticsearch, file/metrics]

@@ -1,209 +1,143 @@
-# OpenTelemetry Spark Application with Datadog Integration
+# OtelSpark: OpenTelemetry observability for Apache Spark
 
-## Overview
-This project demonstrates how to integrate OpenTelemetry with a Spark application to export traces and metrics. It also includes Datadog integration for monitoring.
+Spark's own UI disappears when the application ends, and its logs, metrics and execution plan
+live in three different places. This framework turns every Spark run into **one OpenTelemetry
+trace** (Application → SQL query → Job → Stage → Task), attaches the run's `trace_id` to every
+log line, and ships traces, logs and JVM/Spark metrics through an **OpenTelemetry Collector** into
+**Elasticsearch and Kibana**. When a task fails, the failure is visible from the top of the trace
+down to the exact task, and the matching ERROR log is one `trace_id` query away.
 
-## Prerequisites
-1. **OpenTelemetry Java Agent**: Download the agent.
-   ```bash
-    -javaagent:/Users/ereshtayanna/Downloads/opentelemetry-javaagent.jar
-    -Dlog4j.configurationFile=classpath:log4j2.xml
-    -Dotel.datadog.enabled=true
+Everything is open source and runs locally in Docker. Datadog is supported as an optional extra
+backend ([docs/datadog.md](docs/datadog.md)).
 
-### Install the Spark integration for Datadog Agent
-    vi /opt/datadog-agent/etc/conf.d/spark.d/conf.yaml
+## 1. How it works
 
-    datadog-agent status
-    sudo launchctl stop com.datadoghq.agent
-    sudo launchctl start com.datadoghq.agent
+![How telemetry flows through the framework](docs/telemetry-flow.svg)
 
-### Test the integration configuration:
-    sudo datadog-agent check spark
+| Step | Component | What it does |
+|---|---|---|
+| 1 | `PipelineSimulator` (Docker) | Runs realistic Spark pipelines back to back: fraud detection, clickstream funnel, risk aggregation. 70% normal, 15% skewed, 15% failing |
+| 2 | [`OtelSparkListener`](src/main/scala/com/example/listeners/OtelSparkListener.scala) | A `SparkListener` registered through `spark.extraListeners`. Opens and closes a span for every application, SQL execution, job, stage and task, and records gauges for running stages and tasks and live executors |
+| 3 | [`OpenTelemetryAppender`](src/main/scala/com/example/exporters/OpenTelemetryAppender.scala) | A log4j2 appender plugin. Turns every log event into an OTel log record carrying the run's `trace_id` / `span_id` |
+| 4 | OpenTelemetry Java agent 2.16 | Provides `GlobalOpenTelemetry`, adds JVM runtime metrics (heap, GC, threads, CPU), batches and exports everything over OTLP gRPC |
+| 5 | OpenTelemetry Collector (contrib 0.145) | One pipeline per signal: `otlp → batch → elasticsearch, file` ([otel/otel-config.yaml](otel/otel-config.yaml)) |
+| 6 | Elasticsearch 8.17 | Stores the signals in OTel-native data streams: `traces-generic.otel-default`, `logs-…`, `metrics-…` |
+| 7 | Kibana | Ships with a ready-made dashboard ([kibana/](kibana/)), imported by `make up` |
+| 8 | [`SparkApp`](src/main/scala/com/example/apps/SparkApp.scala) | Optional: reads the raw OTLP JSON files and joins logs to spans with Spark itself |
 
-### restart the agent:
-    launchctl kickstart -k gui/$(id -u)/com.datadoghq.agent
-
-### Added below VM options
-    -Dotel.datadog.enabled=true
-    -Dlog4j.configurationFile=classpath:log4j2.xml
-    -Dspark.app.name=fraud-detection-app
-    -Dotel.service.name=OTEL-SPARK-APP
-    -Dcom.sun.management.jmxremote
-    -Dcom.sun.management.jmxremote.port=9010
-    -Dcom.sun.management.jmxremote.rmi.port=9010
-    -Dcom.sun.management.jmxremote.authenticate=false
-    -Dcom.sun.management.jmxremote.ssl=false
-    -Djava.rmi.server.hostname=127.0.0.1
-    -javaagent:/Users/ereshtayanna/Downloads/opentelemetry-javaagent.jar
-    -Dotel.traces.exporter=otlp
-    -Dotel.exporter.otlp.endpoint=http://localhost:14317
-    -Dotel.exporter.otlp.protocol=grpc
-
-### Exposes JVM MBeans over JMX on 127.0.0.1:9010 so an external collector (Datadog Agent JMXFetch) can scrape:
-    heap / non-heap
-    GC metrics
-    thread counts
-    class loading, etc.
-
-
-### Datadog Spark integration + JMX (port 9010).
-    /opt/datadog-agent/etc/conf.d/spark.d/conf.yaml
-
-### Send Spark metrics (driver/executor/JVM + partial Spark internals) from a local Spark standalone app (IntelliJ) to Datadog using JMX.
-    ``
-
-    Spark JVM (Driver / Executors)
-                ↓  (JMX on port 9010)
-    Datadog Agent (JMXFetch + Spark integration)
-                ↓
-    Datadog Dashboards
-
-    ``
-### Datadog Agent status , Ensure Agent & JMXFetch are running:
-    sudo datadog-agent status | grep -i jmx
-    sudo datadog-agent status | grep -i -E "jmx|jmxfetch|9010|collector"
-
-## How to verify it's actually working (critical)
-### JVM must expose JMX, Run below command while Spark job is running:
-    $ lsof -nP -iTCP:9010 -sTCP:LISTEN
-
-### High-signal ones:
-
-    FileScan / BatchScan → reading source (HDFS/S3/Hive table)
-    Project → select/withColumn/rename (column projection)
-    Filter → where/filter
-    HashAggregate / ObjectHashAggregate → groupBy/agg
-    Join (BroadcastHashJoin / SortMergeJoin / ShuffledHashJoin) → join type
-    Exchange → shuffle boundary (usually the big cost driver)
-    Sort → sort/orderBy
-    GlobalLimit/LocalLimit → head/show/take-like actions
-    WriteFiles / InsertIntoHadoopFsRelationCommand / SaveIntoDataSourceCommand → writes
-
-    Read → Filter → Select → Join/Aggregate → Shuffle → Write
-
-
-datadog queries:
-
-    service:otel-spark-app AND status:error
-    service:otel-spark-app AND resource_name:"Spark Driver Failure"
-    service:otel-spark-app AND resource_name:"Exchange"
-
-
-
----
-
-# Phase 2 — Switched from Datadog to OTLP Collector + Local JSON Files
-
-## What Changed
-
-Removed the Datadog dependency. Instead of sending to Datadog's OTLP intake (port 14317), we now send to a local OpenTelemetry Collector (port 4317) which writes all signals to JSON files.
-
-## Architecture
+### The span model
 
 ```
-Spark Application
-        │
-        ├── OtelSparkListener       → spans: App → SQL → Job → Stage → Task
-        ├── OpenTelemetryAppender   → logs with trace context injected
-        └── OTel Java Agent
-              │
-              ▼  OTLP gRPC (localhost:4317)
-    OpenTelemetry Collector
-              │
-    ┌─────────┼──────────┐
-    ▼         ▼          ▼
-spans.json  logs.json  metrics.json
+Spark Application: fraud-detection                 (root span, SpanKind.SERVER)
+├── Spark JOIN: count (1 src)                      (one per SQL execution, labelled from the physical plan)
+│   └── Spark Job: 3
+│       └── Spark Stage: 4
+│           ├── Spark Task: 17
+│           └── Spark Task: 18   ✗ ERROR           (failed task)
+├── Spark Executor Added: driver
+└── Spark Environment Update                      (Spark + system properties, secrets filtered out)
 ```
 
-## Collector Config (`otel/otel-config.yaml`)
+**SQL spans are named after what the query does.** The physical plan is parsed, and each SQL
+execution is labelled `READ`, `JOIN`, `AGG`, `SHUFFLE`, `WINDOW`, `SORT`, `WRITE` or
+`TRANSFORM`. The operator chain (`spark.sql.ops`), the source count and the first 3,000
+characters of the plan are recorded as attributes.
 
-```yaml
-receivers:
-  otlp:
-    protocols:
-      grpc:
-        endpoint: 0.0.0.0:4317
-processors:
-  batch: {}
-exporters:
-  file/traces:
-    path: data/spans.json
-  file/logs:
-    path: data/logs.json
-  file/metrics:
-    path: data/metrics.json
-service:
-  pipelines:
-    traces:
-      receivers: [otlp]
-      processors: [batch]
-      exporters: [file/traces]
-    logs:
-      receivers: [otlp]
-      processors: [batch]
-      exporters: [file/logs]
-    metrics:
-      receivers: [otlp]
-      processors: [batch]
-      exporters: [file/metrics]
-```
+| Physical operator | Meaning |
+|---|---|
+| `FileScan` / `BatchScan` | reading a source (HDFS, S3, Hive table) |
+| `Project` / `Filter` | select / withColumn / where |
+| `HashAggregate` | groupBy / agg |
+| `BroadcastHashJoin` / `SortMergeJoin` | join strategy |
+| `Exchange` | shuffle boundary, usually the biggest cost |
+| `WriteFiles` / `InsertIntoHadoopFsRelationCommand` | writes |
 
-## JVM Flags for Phase 2
+**Failure propagation.** A failed task marks its stage, the stage's job, and the job's SQL
+execution as `ERROR` (`markStageFailed → markJobFailed → markSqlExecutionFailed`). The
+application span ends `FAILED` if anything below it failed or an uncaught exception reached the
+driver (a `Spark Driver Failure` span is recorded in that case).
 
-```
--javaagent:/Users/ereshtayanna/Downloads/opentelemetry-javaagent.jar
--Dotel.service.name=fraud-detection-app
--Dotel.exporter.otlp.endpoint=http://localhost:4317
--Dotel.exporter.otlp.protocol=grpc
--Dotel.traces.exporter=otlp
--Dotel.metrics.exporter=otlp
--Dotel.logs.exporter=otlp
--Dotel.listener.useJavaAgent=true
--Dotel.instrumentation.log4j-appender.enabled=false
--Dlog4j.configurationFile=classpath:log4j2.xml
--Dspark.app.name=fraud-detection-app
-```
+**Trace–log correlation.** The appender reads the application span from
+`OtelSparkListener.getAppContext`, so every log line written during a run carries that run's
+`trace_id`. In Kibana Discover, `trace_id : "<id>"` shows every log of one run. Lines logged
+before the application span exists (JVM and Spark start-up) have no trace context.
 
-Note: `-Dotel.instrumentation.log4j-appender.enabled=false` is required. Without it the agent's built-in Log4j2 capture runs alongside our custom appender and produces log records with no trace context.
+**Metrics** carry no `trace_id` (by the OTel spec they are aggregated time series). They are
+linked to runs by `service.name` and `spark.app.id`, and by time.
 
-## Start the Collector
+## 2. What you get
+
+![What the framework produces: run KPIs, failures, a span waterfall and the correlated ERROR log](docs/outcome.svg)
+
+This image comes from live simulator data, rendered from Elasticsearch by
+[`scripts/render_outcome_svg.py`](scripts/render_outcome_svg.py). The same data appears in the
+Kibana dashboard **Spark Observability (OpenTelemetry)**:
+
+| Panel | Answers |
+|---|---|
+| Pipeline runs · Failed runs · Avg run duration · ERROR logs | Is the platform healthy right now? |
+| Pipeline runs over time (OK vs FAILED) | When did failures start? |
+| Avg run duration by pipeline and scenario | Which pipeline got slower, and is it skew? |
+| Spark SQL executions by operation | How much of the work is shuffles, joins and writes? |
+| Slowest stages | Which line of code is the bottleneck (`count at PipelineSimulator.scala:84`)? |
+| Running Spark tasks · JVM heap used | Parallelism and memory pressure per pipeline |
+| Failed spans | The failing task → stage → job → app chain |
+| ERROR logs with trace context | The exception text, with the `trace_id` that leads to the trace |
+
+## 3. Run it
+
+Requires Docker Desktop with about 6 GB of memory available.
 
 ```bash
-otelcol --config otel/otel-config.yaml
+make up      # Elasticsearch + Kibana + OTel Collector, then imports the Kibana dashboard
+make load    # starts the simulator: a new Spark pipeline every ~15 seconds
+open http://localhost:5601/app/dashboards#/view/spark-observability
+make down    # stop everything and delete the data
 ```
 
-If port 8888 conflicts on startup: `lsof -i :8888` then `kill <PID>`.
+Full steps, the interview demo script, configuration and troubleshooting:
+**[EXECUTION.md](EXECUTION.md)**.
 
-## Trace–Log Correlation
+## 4. Project layout
 
-`OpenTelemetryAppender` injects `dd.trace_id` and `dd.span_id` as attributes into every log record. In the JSON files, join logs to spans using:
-
-```scala
-spans.join(logs_df, spans("traceId") === logs_df("trace_id"), "left")
+```
+src/main/scala/com/example/
+  listeners/OtelSparkListener.scala          Spark events → spans, gauges, failure propagation
+  listeners/OtelQueryExecutionListener.scala optional: per-query span with logical plan + SQL metrics
+  exporters/OpenTelemetryAppender.scala      log4j2 → OTel logs with trace_id / span_id
+  exporters/{File,Log,MetricFile}Exporter    SDK file exporters for runs without a collector
+  apps/PipelineSimulator.scala               live traffic: 3 pipelines × normal / skew / failure
+  apps/FraudDetectionApp.scala               original end-to-end example over CSV inputs
+  apps/SparkApp.scala                        reads the OTLP JSON files, joins logs ⨝ spans
+src/main/resources/log4j2.xml                registers the appender; Spark internals at WARN
+otel/otel-config.yaml                        collector: OTLP in → Elasticsearch + JSON files
+otel/otel-config.datadog.yaml                optional: adds the Datadog exporter
+kibana/build_dashboard.py                    dashboard as code → spark-observability.ndjson
+docker-compose.yml · Dockerfile · Makefile   the whole stack
+docker/run-job.sh · docker/traffic-loop.sh   JVM + agent launcher, simulator loop
+scripts/                                     Kibana import, sample data, outcome.svg renderer
+docs/                                        diagrams, Datadog notes
 ```
 
-Note: `traceId` in `logs.json` is inside the `attributes` array, not a top-level OTLP field. Extract it with:
+## 5. Design decisions and limits
 
-```scala
-expr("filter(l.attributes, x -> x.key = 'dd.trace_id')[0].value.stringValue")
-```
-
-About 94% of log records carry trace context. The remaining 6% are from Spark startup before the application span is created.
-
-## Metrics Correlation
-
-Metrics do not carry `traceId` — by OTel spec, metrics are aggregated time-series not per-request events.
-
-- In Datadog: correlation is done via shared tags and Datadog auto-generates APM metrics from traces.
-- In JSON files: correlate at the application level using `spark.app.id` as a shared attribute, or by time window.
-
-## Reading the JSON Files (SparkApp)
-
-No JVM flags or agent needed.
-
-```bash
-mvn package
-java -cp target/OtelSpark-1.0-SNAPSHOT.jar com.example.apps.SparkApp
-```
-
-Shows: span tree, logs with trace IDs, logs joined to their parent span, metric series names.
+- **Listener + agent instead of agent alone.** The Java agent knows nothing about Spark's
+  scheduler, and the listener knows nothing about exporting. With the agent installed, the
+  listener only uses `GlobalOpenTelemetry`, so the export target is configuration, not code.
+  Without the agent (`-Dotel.listener.useJavaAgent=false`) the listener builds its own SDK.
+- **The collector decouples Spark from the backend.** Switching between Elasticsearch, Datadog
+  or anything else that speaks OTLP is a collector config change. Spark jobs are not touched.
+- **One span per task does not scale to very large jobs.** That is fine for this demo, but a
+  stage with 100,000 tasks produces 100,000 spans. For production: emit task spans only for
+  failed, retried or straggler tasks (for example > p95 duration), and roll task metrics up
+  into the stage span.
+- **Logs link to the application span, not to the job or stage.** Spark log lines don't say
+  which job they belong to. Linking them to the innermost active span needs the job ID in the
+  logging MDC.
+- **Driver only.** In `local` mode the driver and executors share one JVM. On a cluster, attach
+  the agent to the executors too (`spark.executor.extraJavaOptions=-javaagent:...`) so that
+  executor logs and JVM metrics are exported.
+- **`spark.shuffle.read.bytes` / `write.bytes` counters are declared but not yet recorded.**
+  The values are available in `onTaskEnd` from `taskMetrics.shuffleReadMetrics`.
+- **Local-only security.** Elasticsearch security is disabled in `docker-compose.yml`. Enable
+  TLS and authentication for anything shared.

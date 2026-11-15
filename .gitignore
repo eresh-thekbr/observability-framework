@@ -39,3 +39,6 @@ build/
 .DS_Store
 
 data/
+### Local tooling / generated ###
+tools/
+.idea/

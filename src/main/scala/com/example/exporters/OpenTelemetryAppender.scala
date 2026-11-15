@@ -47,6 +47,7 @@ override def append(event: LogEvent): Unit = {
         .setContext(currentContext)
         .setTimestamp(event.getTimeMillis, TimeUnit.MILLISECONDS)
         .setSeverity(mapLogLevelToSeverity(event.getLevel.toString))
+        .setSeverityText(event.getLevel.toString)
         .setBody(event.getMessage.getFormattedMessage)
 
     // Set attributes individually; do not use setAllAttributes

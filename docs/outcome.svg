@@ -1,0 +1,139 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="898" viewBox="0 0 1400 898" color="#1b2230" font-family="Helvetica, Arial, sans-serif" role="img" aria-label="Outcome of the OtelSpark framework on live simulator traffic: 34 Spark pipeline runs, their status over time, the span waterfall of a failed run from application down to the failed task, and the ERROR log linked to it by trace_id.">
+<rect x="0" y="0" width="1400" height="898" fill="#f6f7f9"/>
+<text x="24" y="40" font-size="18" font-weight="bold">What the framework produces — live simulator traffic in Elasticsearch</text>
+<text x="24" y="62" font-size="12" fill="#5b6576">Rendered from Elasticsearch by scripts/render_outcome_svg.py · 2026-11-15 04:12 UTC · same data as the Kibana dashboard "Spark Observability (OpenTelemetry)"</text>
+<rect x="24" y="80" width="158" height="70" rx="8" fill="#ffffff" stroke="#d5dae2"/>
+<text x="36" y="102" font-size="11" fill="#5b6576">Pipeline runs</text>
+<text x="36" y="136" font-size="24" font-weight="bold" fill="#1b2230">34</text>
+<rect x="194" y="80" width="158" height="70" rx="8" fill="#ffffff" stroke="#d5dae2"/>
+<text x="206" y="102" font-size="11" fill="#5b6576">Failed runs</text>
+<text x="206" y="136" font-size="24" font-weight="bold" fill="#dc2626">6</text>
+<rect x="365" y="80" width="158" height="70" rx="8" fill="#ffffff" stroke="#d5dae2"/>
+<text x="377" y="102" font-size="11" fill="#5b6576">Failure rate</text>
+<text x="377" y="136" font-size="24" font-weight="bold" fill="#dc2626">18%</text>
+<rect x="536" y="80" width="158" height="70" rx="8" fill="#ffffff" stroke="#d5dae2"/>
+<text x="548" y="102" font-size="11" fill="#5b6576">Avg run duration</text>
+<text x="548" y="136" font-size="24" font-weight="bold" fill="#1b2230">4.6s</text>
+<rect x="706" y="80" width="158" height="70" rx="8" fill="#ffffff" stroke="#d5dae2"/>
+<text x="718" y="102" font-size="11" fill="#5b6576">Spans</text>
+<text x="718" y="136" font-size="24" font-weight="bold" fill="#2563eb">2,113</text>
+<rect x="876" y="80" width="158" height="70" rx="8" fill="#ffffff" stroke="#d5dae2"/>
+<text x="888" y="102" font-size="11" fill="#5b6576">Log records</text>
+<text x="888" y="136" font-size="24" font-weight="bold" fill="#16a34a">6,273</text>
+<rect x="1047" y="80" width="158" height="70" rx="8" fill="#ffffff" stroke="#d5dae2"/>
+<text x="1059" y="102" font-size="11" fill="#5b6576">Logs with trace_id</text>
+<text x="1059" y="136" font-size="24" font-weight="bold" fill="#16a34a">85.3%</text>
+<rect x="1218" y="80" width="158" height="70" rx="8" fill="#ffffff" stroke="#d5dae2"/>
+<text x="1230" y="102" font-size="11" fill="#5b6576">Metric points</text>
+<text x="1230" y="136" font-size="24" font-weight="bold" fill="#d97706">1,451</text>
+<rect x="24" y="170" width="860" height="250" rx="8" fill="#ffffff" stroke="#d5dae2"/>
+<text x="38" y="194" font-size="13" font-weight="bold">Pipeline runs over time</text>
+<text x="38" y="211" font-size="11" fill="#5b6576">one bar per Spark application (= one trace); height = run duration</text>
+<rect x="584" y="186" width="10" height="10" fill="#2563eb"/><text x="598" y="195" font-size="11">normal</text>
+<rect x="664" y="186" width="10" height="10" fill="#d97706"/><text x="678" y="195" font-size="11">skew</text>
+<rect x="744" y="186" width="10" height="10" fill="#dc2626"/><text x="758" y="195" font-size="11">failure</text>
+<text x="824" y="195" font-size="11" fill="#dc2626">▲ failed</text>
+<line x1="74" y1="386.0" x2="864" y2="386.0" stroke="#eef0f4"/><text x="66" y="390.0" font-size="10" fill="#5b6576" text-anchor="end">0s</text>
+<line x1="74" y1="347.0" x2="864" y2="347.0" stroke="#eef0f4"/><text x="66" y="351.0" font-size="10" fill="#5b6576" text-anchor="end">2s</text>
+<line x1="74" y1="308.0" x2="864" y2="308.0" stroke="#eef0f4"/><text x="66" y="312.0" font-size="10" fill="#5b6576" text-anchor="end">4s</text>
+<line x1="74" y1="269.0" x2="864" y2="269.0" stroke="#eef0f4"/><text x="66" y="273.0" font-size="10" fill="#5b6576" text-anchor="end">6s</text>
+<line x1="74" y1="230.0" x2="864" y2="230.0" stroke="#eef0f4"/><text x="66" y="234.0" font-size="10" fill="#5b6576" text-anchor="end">8s</text>
+<rect x="74.0" y="276.3" width="14.0" height="109.7" fill="#2563eb" rx="1.5"/>
+<rect x="97.2" y="288.8" width="14.0" height="97.2" fill="#2563eb" rx="1.5"/>
+<rect x="114.9" y="284.4" width="14.0" height="101.6" fill="#2563eb" rx="1.5"/>
+<rect x="132.5" y="287.2" width="14.0" height="98.8" fill="#d97706" rx="1.5"/>
+<rect x="153.5" y="290.5" width="14.0" height="95.5" fill="#2563eb" rx="1.5"/>
+<rect x="180.7" y="292.5" width="14.0" height="93.5" fill="#d97706" rx="1.5"/>
+<rect x="206.5" y="293.7" width="14.0" height="92.3" fill="#2563eb" rx="1.5"/>
+<rect x="227.3" y="317.4" width="14.0" height="68.6" fill="#2563eb" rx="1.5"/>
+<rect x="258.9" y="303.2" width="14.0" height="82.8" fill="#2563eb" rx="1.5"/>
+<rect x="283.1" y="290.8" width="14.0" height="95.2" fill="#2563eb" rx="1.5"/>
+<rect x="308.5" y="320.0" width="14.0" height="66.0" fill="#dc2626" rx="1.5"/>
+<text x="315.5" y="316.0" font-size="10" fill="#dc2626" text-anchor="middle">▲</text>
+<rect x="336.4" y="317.1" width="14.0" height="68.9" fill="#2563eb" rx="1.5"/>
+<rect x="361.7" y="283.3" width="14.0" height="102.7" fill="#2563eb" rx="1.5"/>
+<rect x="380.9" y="280.1" width="14.0" height="105.9" fill="#2563eb" rx="1.5"/>
+<rect x="406.2" y="314.7" width="14.0" height="71.3" fill="#d97706" rx="1.5"/>
+<rect x="432.0" y="285.9" width="14.0" height="100.1" fill="#2563eb" rx="1.5"/>
+<rect x="450.8" y="265.4" width="14.0" height="120.6" fill="#2563eb" rx="1.5"/>
+<rect x="484.9" y="313.1" width="14.0" height="72.9" fill="#2563eb" rx="1.5"/>
+<rect x="514.6" y="284.5" width="14.0" height="101.5" fill="#2563eb" rx="1.5"/>
+<rect x="540.9" y="327.0" width="14.0" height="59.0" fill="#dc2626" rx="1.5"/>
+<text x="547.9" y="323.0" font-size="10" fill="#dc2626" text-anchor="middle">▲</text>
+<rect x="568.1" y="329.1" width="14.0" height="56.9" fill="#dc2626" rx="1.5"/>
+<text x="575.1" y="325.1" font-size="10" fill="#dc2626" text-anchor="middle">▲</text>
+<rect x="596.4" y="319.5" width="14.0" height="66.5" fill="#2563eb" rx="1.5"/>
+<rect x="618.4" y="286.3" width="14.0" height="99.7" fill="#2563eb" rx="1.5"/>
+<rect x="653.8" y="279.6" width="14.0" height="106.4" fill="#2563eb" rx="1.5"/>
+<rect x="676.9" y="306.6" width="14.0" height="79.4" fill="#2563eb" rx="1.5"/>
+<rect x="693.9" y="290.0" width="14.0" height="96.0" fill="#2563eb" rx="1.5"/>
+<text x="700.9" y="286.0" font-size="10" fill="#dc2626" text-anchor="middle">▲</text>
+<rect x="698.6" y="285.0" width="14.0" height="101.0" fill="#2563eb" rx="1.5"/>
+<rect x="726.2" y="292.2" width="14.0" height="93.8" fill="#2563eb" rx="1.5"/>
+<rect x="750.0" y="252.9" width="14.0" height="133.1" fill="#d97706" rx="1.5"/>
+<rect x="769.2" y="278.3" width="14.0" height="107.7" fill="#2563eb" rx="1.5"/>
+<rect x="790.7" y="320.8" width="14.0" height="65.2" fill="#2563eb" rx="1.5"/>
+<rect x="809.6" y="306.5" width="14.0" height="79.5" fill="#dc2626" rx="1.5"/>
+<text x="816.6" y="302.5" font-size="10" fill="#dc2626" text-anchor="middle">▲</text>
+<rect x="825.4" y="330.2" width="14.0" height="55.8" fill="#dc2626" rx="1.5"/>
+<text x="832.4" y="326.2" font-size="10" fill="#dc2626" text-anchor="middle">▲</text>
+<rect x="850.0" y="286.3" width="14.0" height="99.7" fill="#2563eb" rx="1.5"/>
+<line x1="74" y1="386" x2="864" y2="386" stroke="#9aa3b2"/>
+<text x="74" y="402" font-size="10" fill="#5b6576">04:02 UTC</text>
+<text x="864" y="402" font-size="10" fill="#5b6576" text-anchor="end">04:12 UTC</text>
+<rect x="904" y="170" width="472" height="250" rx="8" fill="#ffffff" stroke="#d5dae2"/>
+<text x="918" y="194" font-size="13" font-weight="bold">Log records by severity</text>
+<text x="918" y="211" font-size="11" fill="#5b6576">log4j2 → OpenTelemetryAppender → OTLP → Elasticsearch</text>
+<text x="918" y="258" font-size="12" font-family="Menlo, Consolas, monospace">INFO</text>
+<rect x="974" y="244" width="302.0" height="20" rx="3" fill="#16a34a"/>
+<text x="1284.0" y="259" font-size="12" font-weight="bold">6,148</text>
+<text x="918" y="310" font-size="12" font-family="Menlo, Consolas, monospace">WARN</text>
+<rect x="974" y="296" width="2.9" height="20" rx="3" fill="#d97706"/>
+<text x="984.9" y="311" font-size="12" font-weight="bold">60</text>
+<text x="918" y="362" font-size="12" font-family="Menlo, Consolas, monospace">ERROR</text>
+<rect x="974" y="348" width="2.3" height="20" rx="3" fill="#dc2626"/>
+<text x="984.3" y="363" font-size="12" font-weight="bold">47</text>
+<text x="918" y="404" font-size="11" fill="#5b6576">85.3% of log records carry the run's trace_id</text>
+<rect x="24" y="440" width="1352" height="330" rx="8" fill="#ffffff" stroke="#d5dae2"/>
+<text x="38" y="464" font-size="13" font-weight="bold">Span waterfall of a failed run</text>
+<text x="38" y="482" font-size="11" fill="#5b6576">service <tspan font-family="Menlo, Consolas, monospace" fill="#1b2230">fraud-detection</tspan> · trace_id <tspan font-family="Menlo, Consolas, monospace" fill="#1b2230">175ded6021d8159e51ae52e4827ef26f</tspan> · the failed task marks its stage, job, SQL execution and application as ERROR</text>
+<rect x="30" y="500" width="1340" height="24" fill="#f8f9fb"/>
+<text x="38" y="517" font-size="11.5" font-family="Menlo, Consolas, monospace" fill="#dc2626">Spark Application: fraud-detection</text>
+<rect x="468.0" y="505" width="818.0" height="14" rx="3" fill="#dc2626" opacity="1"/>
+<text x="1296" y="517" font-size="11" fill="#5b6576">4.93s</text>
+<text x="54" y="541" font-size="11.5" font-family="Menlo, Consolas, monospace" fill="#1b2230">Spark SHUFFLE: count</text>
+<rect x="795.4" y="529" width="199.9" height="14" rx="3" fill="#2563eb" opacity="0.75"/>
+<text x="1296" y="541" font-size="11" fill="#5b6576">1.20s</text>
+<rect x="30" y="548" width="1340" height="24" fill="#f8f9fb"/>
+<text x="54" y="565" font-size="11.5" font-family="Menlo, Consolas, monospace" fill="#1b2230">Spark SHUFFLE: count</text>
+<rect x="1006.3" y="553" width="159.3" height="14" rx="3" fill="#2563eb" opacity="0.75"/>
+<text x="1296" y="565" font-size="11" fill="#5b6576">0.96s</text>
+<text x="54" y="589" font-size="11.5" font-family="Menlo, Consolas, monospace" fill="#dc2626">Spark WRITE: parquet</text>
+<rect x="1192.4" y="577" width="93.0" height="14" rx="3" fill="#dc2626" opacity="1"/>
+<text x="1296" y="589" font-size="11" fill="#5b6576">0.56s</text>
+<rect x="30" y="596" width="1340" height="24" fill="#f8f9fb"/>
+<text x="70" y="613" font-size="11.5" font-family="Menlo, Consolas, monospace" fill="#1b2230">Spark Job: 4</text>
+<rect x="1209.9" y="601" width="3.0" height="14" rx="3" fill="#2563eb" opacity="0.75"/>
+<text x="1296" y="613" font-size="11" fill="#5b6576">0.02s</text>
+<text x="70" y="637" font-size="11.5" font-family="Menlo, Consolas, monospace" fill="#dc2626">Spark Job: 5</text>
+<rect x="1230.0" y="625" width="52.4" height="14" rx="3" fill="#dc2626" opacity="1"/>
+<text x="1296" y="637" font-size="11" fill="#5b6576">0.32s</text>
+<rect x="30" y="644" width="1340" height="24" fill="#f8f9fb"/>
+<text x="86" y="661" font-size="11.5" font-family="Menlo, Consolas, monospace" fill="#dc2626">Spark Stage: 8</text>
+<rect x="1230.1" y="649" width="51.7" height="14" rx="3" fill="#dc2626" opacity="1"/>
+<text x="1296" y="661" font-size="11" fill="#5b6576">0.31s</text>
+<text x="102" y="685" font-size="11.5" font-family="Menlo, Consolas, monospace" fill="#dc2626">Spark Task: 31</text>
+<rect x="1230.8" y="673" width="37.1" height="14" rx="3" fill="#dc2626" opacity="1"/>
+<text x="1296" y="685" font-size="11" fill="#5b6576">0.22s</text>
+<rect x="30" y="692" width="1340" height="24" fill="#f8f9fb"/>
+<text x="102" y="709" font-size="11.5" font-family="Menlo, Consolas, monospace" fill="#1b2230">Spark Task: 32</text>
+<rect x="1230.8" y="697" width="52.7" height="14" rx="3" fill="#2563eb" opacity="0.75"/>
+<text x="1296" y="709" font-size="11" fill="#5b6576">0.32s</text>
+<text x="102" y="733" font-size="11.5" font-family="Menlo, Consolas, monospace" fill="#1b2230">Spark Task: 33</text>
+<rect x="1230.8" y="721" width="52.8" height="14" rx="3" fill="#2563eb" opacity="0.75"/>
+<text x="1296" y="733" font-size="11" fill="#5b6576">0.32s</text>
+<rect x="24" y="790" width="1352" height="84" rx="8" fill="#fef2f2" stroke="#dc2626"/>
+<text x="38" y="814" font-size="13" font-weight="bold" fill="#dc2626">The ERROR log for that run, found by the same trace_id</text>
+<text x="38" y="836" font-size="11.5" font-family="Menlo, Consolas, monospace">Pipeline fraud-detection FAILED after 4835 ms: Corrupt record at row 8589939592: amount=68.71 failed schema validation</text>
+<text x="38" y="858" font-size="11" fill="#5b6576">trace_id <tspan font-family="Menlo, Consolas, monospace" fill="#1b2230">175ded6021d8159e51ae52e4827ef26f</tspan>   span_id <tspan font-family="Menlo, Consolas, monospace" fill="#1b2230">70a35b10d5910c67</tspan>   → in Kibana: Discover, query <tspan font-family="Menlo, Consolas, monospace" fill="#1b2230">trace_id : "175ded6021d8159e51ae52e4827ef26f"</tspan></text>
+</svg>

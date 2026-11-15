@@ -1,0 +1,256 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1510" height="610" viewBox="0 0 1510 610" color="#1b2230" font-family="Helvetica, Arial, sans-serif" role="img" aria-label="Telemetry flow of the OtelSpark observability framework. Spark pipelines run in a Docker container; OtelSparkListener turns Spark events into spans, OpenTelemetryAppender turns log4j2 logs into OTel log records carrying the run's trace_id, and the OpenTelemetry Java agent adds JVM metrics and ships everything over OTLP gRPC to an OpenTelemetry Collector. The collector writes to Elasticsearch data streams, viewed in a Kibana dashboard, and to raw JSON files read by SparkApp. A failed task marks its stage, job, SQL execution and application spans as ERROR. Datadog is an optional extra exporter.">
+  <defs>
+    <marker id="a-blue" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#2563eb"/></marker>
+    <marker id="a-green" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#16a34a"/></marker>
+    <marker id="a-orange" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#d97706"/></marker>
+    <marker id="a-red" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#dc2626"/></marker>
+    <marker id="a-purple" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#7c3aed"/></marker>
+    <marker id="a-grey" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#5b6576"/></marker>
+  </defs>
+
+  <rect x="0" y="0" width="1510" height="610" fill="#f6f7f9"/>
+
+  <!-- Title + legend -->
+  <text x="24" y="40" font-size="18" font-weight="bold" fill="#1b2230">OtelSpark observability framework — how telemetry flows</text>
+  <text x="24" y="62" font-size="12" fill="#5b6576">Spans, logs and metrics from every Spark run, linked by trace_id, searchable in Elasticsearch and Kibana (all open source, all in Docker)</text>
+  <g font-size="11.5" fill="#1b2230">
+    <circle cx="960" cy="40" r="5" fill="#2563eb"/><text x="970" y="44">traces</text>
+    <circle cx="1030" cy="40" r="5" fill="#16a34a"/><text x="1040" y="44">logs</text>
+    <circle cx="1088" cy="40" r="5" fill="#d97706"/><text x="1098" y="44">metrics</text>
+    <circle cx="1162" cy="40" r="5" fill="#dc2626"/><text x="1172" y="44">failure path</text>
+    <rect x="1257" y="35" width="10" height="10" fill="#7c3aed"/><text x="1273" y="44">trace context hand-off</text>
+  </g>
+
+  <!-- Column headers -->
+  <g font-size="10.5" fill="#5b6576" letter-spacing="1.2" font-weight="bold">
+    <text x="114" y="104" text-anchor="middle">SPARK JOB (DOCKER)</text>
+    <text x="399" y="104" text-anchor="middle">CAPTURE · IN JVM</text>
+    <text x="679" y="104" text-anchor="middle">EXPORT</text>
+    <text x="919" y="104" text-anchor="middle">COLLECTOR</text>
+    <text x="1164" y="104" text-anchor="middle">STORE</text>
+    <text x="1399" y="104" text-anchor="middle">EXPLORE</text>
+  </g>
+
+  <!-- C1: Spark job -->
+  <rect x="24" y="120" width="180" height="335" rx="8" fill="#ffffff" stroke="#9aa3b2"/>
+  <text x="114" y="138" text-anchor="middle" font-size="13" font-weight="bold" font-family="Menlo, Consolas, monospace">PipelineSimulator</text>
+  <rect x="36" y="152" width="156" height="36" rx="6" fill="#eef3ff" stroke="#2563eb"/>
+  <text x="114" y="167" text-anchor="middle" font-size="11" font-family="Menlo, Consolas, monospace">LiveListenerBus</text>
+  <text x="114" y="181" text-anchor="middle" font-size="10.5" fill="#5b6576">app / SQL / job / stage / task</text>
+  <text x="114" y="226" text-anchor="middle" font-size="10.5" fill="#5b6576">fraud-detection</text>
+  <text x="114" y="241" text-anchor="middle" font-size="10.5" fill="#5b6576">clickstream-funnel</text>
+  <text x="114" y="256" text-anchor="middle" font-size="10.5" fill="#5b6576">risk-aggregation</text>
+  <rect x="36" y="272" width="156" height="36" rx="6" fill="#ecfdf3" stroke="#16a34a"/>
+  <text x="114" y="287" text-anchor="middle" font-size="11" font-family="Menlo, Consolas, monospace">logger.info(...)</text>
+  <text x="114" y="301" text-anchor="middle" font-size="10.5" fill="#5b6576">log4j2 root logger</text>
+  <text x="114" y="346" text-anchor="middle" font-size="10.5" fill="#5b6576">70% normal · 15% skew</text>
+  <text x="114" y="361" text-anchor="middle" font-size="10.5" fill="#5b6576">15% failure</text>
+  <rect x="36" y="392" width="156" height="36" rx="6" fill="#fff7e6" stroke="#d97706"/>
+  <text x="114" y="407" text-anchor="middle" font-size="11">JVM runtime</text>
+  <text x="114" y="421" text-anchor="middle" font-size="10.5" fill="#5b6576">heap · GC · threads · CPU</text>
+  <text x="114" y="447" text-anchor="middle" font-size="10.5" fill="#5b6576" font-family="Menlo, Consolas, monospace">make load</text>
+
+  <!-- C2: capture -->
+  <rect x="264" y="125" width="270" height="90" rx="8" fill="#ffffff" stroke="#2563eb" stroke-width="1.5"/>
+  <text x="399" y="146" text-anchor="middle" font-size="13" font-weight="bold" font-family="Menlo, Consolas, monospace">OtelSparkListener</text>
+  <text x="399" y="166" text-anchor="middle" font-size="11" font-family="Menlo, Consolas, monospace">App → SQL → Job → Stage → Task</text>
+  <text x="399" y="182" text-anchor="middle" font-size="10.5" fill="#5b6576">SQL spans labelled READ / JOIN / AGG / WRITE</text>
+  <text x="399" y="203" text-anchor="middle" font-size="10.5" fill="#5b6576">spark.extraListeners</text>
+
+  <rect x="264" y="245" width="270" height="90" rx="8" fill="#ffffff" stroke="#16a34a" stroke-width="1.5"/>
+  <text x="399" y="266" text-anchor="middle" font-size="13" font-weight="bold" font-family="Menlo, Consolas, monospace">OpenTelemetryAppender</text>
+  <text x="399" y="286" text-anchor="middle" font-size="10.5" fill="#5b6576">body · severity · logger.name · thread</text>
+  <text x="399" y="303" text-anchor="middle" font-size="11" font-family="Menlo, Consolas, monospace">+ trace_id · span_id</text>
+  <text x="399" y="322" text-anchor="middle" font-size="10.5" fill="#5b6576">custom log4j2 plugin (log4j2.xml)</text>
+
+  <rect x="264" y="365" width="270" height="90" rx="8" fill="#ffffff" stroke="#d97706" stroke-width="1.5"/>
+  <text x="399" y="386" text-anchor="middle" font-size="13" font-weight="bold">Gauges + runtime metrics</text>
+  <text x="399" y="405" text-anchor="middle" font-size="10.5" font-family="Menlo, Consolas, monospace">spark.tasks.running</text>
+  <text x="399" y="420" text-anchor="middle" font-size="10.5" font-family="Menlo, Consolas, monospace">spark.stages.running · executor.count</text>
+  <text x="399" y="440" text-anchor="middle" font-size="10.5" font-family="Menlo, Consolas, monospace">jvm.memory.used · jvm.gc.duration</text>
+
+  <!-- trace context hand-off -->
+  <line x1="399" y1="216" x2="399" y2="243" stroke="#7c3aed" stroke-width="2" stroke-dasharray="4 3" marker-end="url(#a-purple)"/>
+  <text x="408" y="234" font-size="10.5" fill="#7c3aed" font-family="Menlo, Consolas, monospace">getAppContext (appSpan)</text>
+
+  <!-- failure propagation -->
+  <rect x="264" y="485" width="270" height="62" rx="8" fill="#fef2f2" stroke="#dc2626" stroke-width="1.5"/>
+  <text x="274" y="503" font-size="12" font-weight="bold" fill="#dc2626">Failure propagation</text>
+  <text x="274" y="519" font-size="10.5" font-family="Menlo, Consolas, monospace">Task FAILED → markStageFailed</text>
+  <text x="274" y="535" font-size="10.5" font-family="Menlo, Consolas, monospace">→ markJobFailed → markSqlExecutionFailed</text>
+  <text x="264" y="566" font-size="10.5" fill="#dc2626">ERROR spans ride the traces lane: <tspan font-family="Menlo, Consolas, monospace">status=ERROR · error=true</tspan></text>
+
+  <!-- C3: Java agent -->
+  <rect x="594" y="120" width="170" height="427" rx="8" fill="#ffffff" stroke="#9aa3b2"/>
+  <text x="679" y="140" text-anchor="middle" font-size="13" font-weight="bold">OTel Java agent</text>
+  <text x="679" y="226" text-anchor="middle" font-size="10.5" fill="#5b6576">GlobalOpenTelemetry</text>
+  <text x="679" y="242" text-anchor="middle" font-size="10.5" font-family="Menlo, Consolas, monospace">v2.16.0 · -javaagent</text>
+  <text x="679" y="346" text-anchor="middle" font-size="10.5" font-family="Menlo, Consolas, monospace">OTEL_*_EXPORTER=otlp</text>
+  <text x="679" y="362" text-anchor="middle" font-size="10.5" font-family="Menlo, Consolas, monospace">metrics every 5 s</text>
+  <text x="679" y="466" text-anchor="middle" font-size="10.5" fill="#5b6576">OTLP gRPC to</text>
+  <text x="679" y="482" text-anchor="middle" font-size="11" font-weight="bold" font-family="Menlo, Consolas, monospace">otel-collector:4317</text>
+
+  <!-- C4: collector -->
+  <rect x="824" y="120" width="190" height="335" rx="8" fill="#ffffff" stroke="#9aa3b2"/>
+  <text x="919" y="138" text-anchor="middle" font-size="13" font-weight="bold">OTel Collector</text>
+  <rect x="838" y="148" width="162" height="44" rx="6" fill="#eef3ff" stroke="#2563eb"/>
+  <text x="919" y="166" text-anchor="middle" font-size="11.5" font-weight="bold">traces pipeline</text>
+  <text x="919" y="182" text-anchor="middle" font-size="10.5" font-family="Menlo, Consolas, monospace">otlp → batch → es, file</text>
+  <rect x="838" y="268" width="162" height="44" rx="6" fill="#ecfdf3" stroke="#16a34a"/>
+  <text x="919" y="286" text-anchor="middle" font-size="11.5" font-weight="bold">logs pipeline</text>
+  <text x="919" y="302" text-anchor="middle" font-size="10.5" font-family="Menlo, Consolas, monospace">otlp → batch → es, file</text>
+  <rect x="838" y="388" width="162" height="44" rx="6" fill="#fff7e6" stroke="#d97706"/>
+  <text x="919" y="406" text-anchor="middle" font-size="11.5" font-weight="bold">metrics pipeline</text>
+  <text x="919" y="422" text-anchor="middle" font-size="10.5" font-family="Menlo, Consolas, monospace">otlp → batch → es, file</text>
+  <text x="919" y="448" text-anchor="middle" font-size="10" fill="#5b6576" font-family="Menlo, Consolas, monospace">otel/otel-config.yaml</text>
+
+  <!-- C5: Elasticsearch -->
+  <rect x="1074" y="120" width="180" height="335" rx="8" fill="#ffffff" stroke="#9aa3b2"/>
+  <text x="1164" y="138" text-anchor="middle" font-size="13" font-weight="bold">Elasticsearch 8.17</text>
+  <rect x="1086" y="148" width="156" height="44" rx="6" fill="#eef3ff" stroke="#2563eb"/>
+  <text x="1164" y="166" text-anchor="middle" font-size="12" font-weight="bold" font-family="Menlo, Consolas, monospace">traces-*</text>
+  <text x="1164" y="182" text-anchor="middle" font-size="10" font-family="Menlo, Consolas, monospace" fill="#5b6576">generic.otel-default</text>
+  <rect x="1086" y="268" width="156" height="44" rx="6" fill="#ecfdf3" stroke="#16a34a"/>
+  <text x="1164" y="286" text-anchor="middle" font-size="12" font-weight="bold" font-family="Menlo, Consolas, monospace">logs-*</text>
+  <text x="1164" y="302" text-anchor="middle" font-size="10" font-family="Menlo, Consolas, monospace" fill="#5b6576">generic.otel-default</text>
+  <rect x="1086" y="388" width="156" height="44" rx="6" fill="#fff7e6" stroke="#d97706"/>
+  <text x="1164" y="406" text-anchor="middle" font-size="12" font-weight="bold" font-family="Menlo, Consolas, monospace">metrics-*</text>
+  <text x="1164" y="422" text-anchor="middle" font-size="10" font-family="Menlo, Consolas, monospace" fill="#5b6576">generic.otel-default</text>
+  <text x="1164" y="448" text-anchor="middle" font-size="10" fill="#5b6576">OTel-native data streams</text>
+
+  <!-- C6: Kibana -->
+  <rect x="1314" y="120" width="170" height="335" rx="8" fill="#ffffff" stroke="#9aa3b2"/>
+  <text x="1399" y="138" text-anchor="middle" font-size="13" font-weight="bold">Kibana dashboard</text>
+  <text x="1399" y="154" text-anchor="middle" font-size="10.5" fill="#5b6576">Spark Observability (OTel)</text>
+  <text x="1399" y="208" text-anchor="middle" font-size="10.5">runs: OK vs FAILED</text>
+  <text x="1399" y="223" text-anchor="middle" font-size="10.5">duration by scenario</text>
+  <text x="1399" y="238" text-anchor="middle" font-size="10.5">slowest stages</text>
+  <text x="1399" y="328" text-anchor="middle" font-size="10.5">logs by severity</text>
+  <text x="1399" y="343" text-anchor="middle" font-size="10.5">ERROR logs + trace_id</text>
+  <text x="1399" y="358" text-anchor="middle" font-size="10.5">failed spans</text>
+  <text x="1399" y="440" text-anchor="middle" font-size="10.5">heap · running tasks</text>
+
+  <!-- Lane arrows -->
+  <g font-size="10.5" text-anchor="middle">
+    <line x1="204" y1="170" x2="262" y2="170" stroke="#2563eb" stroke-width="2" marker-end="url(#a-blue)"/>
+    <text x="234" y="163" fill="#2563eb">events</text>
+    <line x1="534" y1="170" x2="592" y2="170" stroke="#2563eb" stroke-width="2" marker-end="url(#a-blue)"/>
+    <text x="564" y="163" fill="#2563eb">spans</text>
+    <line x1="764" y1="170" x2="836" y2="170" stroke="#2563eb" stroke-width="2" marker-end="url(#a-blue)"/>
+    <text x="795" y="163" fill="#2563eb">OTLP</text>
+    <line x1="1000" y1="170" x2="1084" y2="170" stroke="#2563eb" stroke-width="2" marker-end="url(#a-blue)"/>
+    <text x="1040" y="163" fill="#2563eb">bulk</text>
+    <line x1="1254" y1="170" x2="1312" y2="170" stroke="#2563eb" stroke-width="2" marker-end="url(#a-blue)"/>
+    <text x="1284" y="163" fill="#2563eb">query</text>
+
+    <line x1="204" y1="290" x2="262" y2="290" stroke="#16a34a" stroke-width="2" marker-end="url(#a-green)"/>
+    <text x="234" y="283" fill="#16a34a">append()</text>
+    <line x1="534" y1="290" x2="592" y2="290" stroke="#16a34a" stroke-width="2" marker-end="url(#a-green)"/>
+    <text x="564" y="283" fill="#16a34a">emit()</text>
+    <line x1="764" y1="290" x2="836" y2="290" stroke="#16a34a" stroke-width="2" marker-end="url(#a-green)"/>
+    <text x="795" y="283" fill="#16a34a">OTLP</text>
+    <line x1="1000" y1="290" x2="1084" y2="290" stroke="#16a34a" stroke-width="2" marker-end="url(#a-green)"/>
+    <text x="1040" y="283" fill="#16a34a">bulk</text>
+    <line x1="1254" y1="290" x2="1312" y2="290" stroke="#16a34a" stroke-width="2" marker-end="url(#a-green)"/>
+    <text x="1284" y="283" fill="#16a34a">query</text>
+
+    <line x1="204" y1="410" x2="262" y2="410" stroke="#d97706" stroke-width="2" marker-end="url(#a-orange)"/>
+    <text x="234" y="403" fill="#d97706">callback</text>
+    <line x1="534" y1="410" x2="592" y2="410" stroke="#d97706" stroke-width="2" marker-end="url(#a-orange)"/>
+    <text x="564" y="403" fill="#d97706">record</text>
+    <line x1="764" y1="410" x2="836" y2="410" stroke="#d97706" stroke-width="2" marker-end="url(#a-orange)"/>
+    <text x="795" y="403" fill="#d97706">OTLP</text>
+    <line x1="1000" y1="410" x2="1084" y2="410" stroke="#d97706" stroke-width="2" marker-end="url(#a-orange)"/>
+    <text x="1040" y="403" fill="#d97706">bulk</text>
+    <line x1="1254" y1="410" x2="1312" y2="410" stroke="#d97706" stroke-width="2" marker-end="url(#a-orange)"/>
+    <text x="1284" y="403" fill="#d97706">query</text>
+  </g>
+
+  <!-- Failure arrows -->
+  <path d="M114,455 L114,515 L262,515" fill="none" stroke="#dc2626" stroke-width="2" marker-end="url(#a-red)"/>
+  <text x="190" y="508" text-anchor="middle" font-size="10.5" fill="#dc2626">task fails</text>
+  <line x1="534" y1="515" x2="592" y2="515" stroke="#dc2626" stroke-width="2" marker-end="url(#a-red)"/>
+  <text x="564" y="508" text-anchor="middle" font-size="10.5" fill="#dc2626">ERROR</text>
+
+  <!-- Secondary sinks: raw files + SparkApp, optional Datadog -->
+  <line x1="919" y1="455" x2="919" y2="483" stroke="#5b6576" stroke-width="1.5" marker-end="url(#a-grey)"/>
+  <text x="926" y="474" font-size="10.5" fill="#5b6576" font-family="Menlo, Consolas, monospace">file/*</text>
+  <rect x="824" y="485" width="190" height="60" rx="8" fill="#ffffff" stroke="#9aa3b2"/>
+  <text x="919" y="507" text-anchor="middle" font-size="12" font-weight="bold" font-family="Menlo, Consolas, monospace">./data/*.json</text>
+  <text x="919" y="524" text-anchor="middle" font-size="10.5" fill="#5b6576">raw OTLP JSON</text>
+  <text x="919" y="538" text-anchor="middle" font-size="10.5" fill="#5b6576">spans · logs · metrics</text>
+  <line x1="1014" y1="515" x2="1072" y2="515" stroke="#5b6576" stroke-width="1.5" marker-end="url(#a-grey)"/>
+  <text x="1043" y="508" text-anchor="middle" font-size="10.5" fill="#5b6576">read</text>
+  <rect x="1074" y="485" width="180" height="60" rx="8" fill="#ffffff" stroke="#9aa3b2"/>
+  <text x="1164" y="507" text-anchor="middle" font-size="12" font-weight="bold" font-family="Menlo, Consolas, monospace">SparkApp</text>
+  <text x="1164" y="524" text-anchor="middle" font-size="10.5" fill="#5b6576">logs ⨝ spans on traceId</text>
+  <text x="1164" y="538" text-anchor="middle" font-size="10.5" fill="#5b6576" font-family="Menlo, Consolas, monospace">make analyze</text>
+
+  <path id="dd-path" d="M990,455 L990,470 L1399,470 L1399,483" fill="none" stroke="#7a8496" stroke-width="1.5" stroke-dasharray="6 4" marker-end="url(#a-grey)">
+    <animate attributeName="stroke-dashoffset" values="20;0" dur="1s" repeatCount="indefinite"/>
+  </path>
+  <rect x="1314" y="485" width="170" height="60" rx="8" fill="#f6f7f9" stroke="#7a8496" stroke-dasharray="5 4"/>
+  <text x="1399" y="507" text-anchor="middle" font-size="12" font-weight="bold" fill="#5b6576">Datadog (optional)</text>
+  <text x="1399" y="524" text-anchor="middle" font-size="10" fill="#5b6576" font-family="Menlo, Consolas, monospace">otel-config.datadog.yaml</text>
+  <text x="1399" y="538" text-anchor="middle" font-size="10" fill="#5b6576">DD_API_KEY from env</text>
+
+  <!-- Footer -->
+  <text x="24" y="595" font-size="11" fill="#5b6576">Run it: <tspan font-family="Menlo, Consolas, monospace">make up</tspan> (Elasticsearch + Kibana + collector + dashboard) · <tspan font-family="Menlo, Consolas, monospace">make load</tspan> (simulator) · Kibana on <tspan font-family="Menlo, Consolas, monospace">localhost:5601</tspan></text>
+
+  <g id="moving-events">
+    <!-- traces -->
+    <circle r="5.5" fill="#2563eb" stroke="#ffffff" stroke-width="1.5" opacity="0">
+      <animateMotion path="M114,170 L399,170 L679,170 L919,170 L1164,170 L1399,170" dur="6s" begin="0s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" values="0;1;1;0;0" keyTimes="0;0.03;0.95;1;1" dur="6s" begin="0s" repeatCount="indefinite"/>
+    </circle>
+    <circle r="5.5" fill="#2563eb" stroke="#ffffff" stroke-width="1.5" opacity="0">
+      <animateMotion path="M114,170 L399,170 L679,170 L919,170 L1164,170 L1399,170" dur="6s" begin="2s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" values="0;1;1;0;0" keyTimes="0;0.03;0.95;1;1" dur="6s" begin="2s" repeatCount="indefinite"/>
+    </circle>
+    <circle r="5.5" fill="#2563eb" stroke="#ffffff" stroke-width="1.5" opacity="0">
+      <animateMotion path="M114,170 L399,170 L679,170 L919,170 L1164,170 L1399,170" dur="6s" begin="4s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" values="0;1;1;0;0" keyTimes="0;0.03;0.95;1;1" dur="6s" begin="4s" repeatCount="indefinite"/>
+    </circle>
+    <!-- logs (most frequent signal) -->
+    <circle r="5.5" fill="#16a34a" stroke="#ffffff" stroke-width="1.5" opacity="0">
+      <animateMotion path="M114,290 L399,290 L679,290 L919,290 L1164,290 L1399,290" dur="6s" begin="0.5s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" values="0;1;1;0;0" keyTimes="0;0.03;0.95;1;1" dur="6s" begin="0.5s" repeatCount="indefinite"/>
+    </circle>
+    <circle r="5.5" fill="#16a34a" stroke="#ffffff" stroke-width="1.5" opacity="0">
+      <animateMotion path="M114,290 L399,290 L679,290 L919,290 L1164,290 L1399,290" dur="6s" begin="2s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" values="0;1;1;0;0" keyTimes="0;0.03;0.95;1;1" dur="6s" begin="2s" repeatCount="indefinite"/>
+    </circle>
+    <circle r="5.5" fill="#16a34a" stroke="#ffffff" stroke-width="1.5" opacity="0">
+      <animateMotion path="M114,290 L399,290 L679,290 L919,290 L1164,290 L1399,290" dur="6s" begin="3.5s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" values="0;1;1;0;0" keyTimes="0;0.03;0.95;1;1" dur="6s" begin="3.5s" repeatCount="indefinite"/>
+    </circle>
+    <circle r="5.5" fill="#16a34a" stroke="#ffffff" stroke-width="1.5" opacity="0">
+      <animateMotion path="M114,290 L399,290 L679,290 L919,290 L1164,290 L1399,290" dur="6s" begin="5s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" values="0;1;1;0;0" keyTimes="0;0.03;0.95;1;1" dur="6s" begin="5s" repeatCount="indefinite"/>
+    </circle>
+    <!-- metrics (every 5 s) -->
+    <circle r="5.5" fill="#d97706" stroke="#ffffff" stroke-width="1.5" opacity="0">
+      <animateMotion path="M114,410 L399,410 L679,410 L919,410 L1164,410 L1399,410" dur="6s" begin="1s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" values="0;1;1;0;0" keyTimes="0;0.03;0.95;1;1" dur="6s" begin="1s" repeatCount="indefinite"/>
+    </circle>
+    <circle r="5.5" fill="#d97706" stroke="#ffffff" stroke-width="1.5" opacity="0">
+      <animateMotion path="M114,410 L399,410 L679,410 L919,410 L1164,410 L1399,410" dur="6s" begin="4s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" values="0;1;1;0;0" keyTimes="0;0.03;0.95;1;1" dur="6s" begin="4s" repeatCount="indefinite"/>
+    </circle>
+    <!-- raw file branch -->
+    <circle r="4.5" fill="#5b6576" stroke="#ffffff" stroke-width="1.5" opacity="0">
+      <animateMotion path="M919,440 L919,515 L1164,515" dur="3s" begin="2.5s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" values="0;1;1;0;0" keyTimes="0;0.05;0.9;1;1" dur="3s" begin="2.5s" repeatCount="indefinite"/>
+    </circle>
+    <!-- failure: task fails, error status propagates, exported as an ERROR span -->
+    <circle r="5.5" fill="#dc2626" stroke="#ffffff" stroke-width="1.5" opacity="0">
+      <animateMotion path="M114,455 L114,515 L399,515 L679,515 L679,170 L919,170 L1164,170 L1399,170" dur="7s" begin="1.5s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" values="0;1;1;0;0" keyTimes="0;0.03;0.95;1;1" dur="7s" begin="1.5s" repeatCount="indefinite"/>
+    </circle>
+    <!-- trace context hand-off: listener's app span -> appender -->
+    <rect x="-4" y="-4" width="8" height="8" fill="#7c3aed" stroke="#ffffff" stroke-width="1" opacity="0">
+      <animateMotion path="M399,216 L399,244" dur="1.6s" begin="0s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" values="0;1;1;0;0" keyTimes="0;0.1;0.85;1;1" dur="1.6s" begin="0s" repeatCount="indefinite"/>
+    </rect>
+  </g>
+</svg>

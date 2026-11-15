@@ -1,0 +1,44 @@
+# Optional: same pipelines as otel-config.yaml, plus Datadog.
+# Use when a Datadog account is available:
+#   export DD_API_KEY=...            # never commit the key
+#   export DD_SITE=datadoghq.com     # or datadoghq.eu, us5.datadoghq.com, ...
+#   OTEL_CONFIG=./otel/otel-config.datadog.yaml docker compose up -d otel-collector
+# See docs/datadog.md.
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
+
+processors:
+  batch: {}
+
+connectors:
+  datadog/connector: {}   # derives APM trace metrics (hits, errors, latency) from spans
+
+exporters:
+  datadog:
+    api:
+      key: ${env:DD_API_KEY}
+      site: ${env:DD_SITE}
+  elasticsearch:
+    endpoint: http://elasticsearch:9200
+    mapping:
+      mode: otel
+
+service:
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [datadog/connector, datadog, elasticsearch]
+    metrics:
+      receivers: [otlp, datadog/connector]
+      processors: [batch]
+      exporters: [datadog, elasticsearch]
+    logs:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [datadog, elasticsearch]

@@ -1,0 +1,89 @@
+# Local open-source observability backend for the Spark demo.
+#   Spark (traffic container + OTel agent) --OTLP gRPC :4317--> otel-collector --> Elasticsearch --> Kibana
+#                                                                  \--> ./data/*.json (raw OTLP files)
+# Start:  make up && make load      Kibana: http://localhost:5601
+services:
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.17.4
+    container_name: es
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false        # local demo only; enable security for anything shared
+      - ES_JAVA_OPTS=-Xms1g -Xmx1g
+    ports:
+      - "9200:9200"
+    volumes:
+      - esdata:/usr/share/elasticsearch/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -s http://localhost:9200/_cluster/health | grep -qE '\"status\":\"(green|yellow)\"'"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+
+  kibana:
+    image: docker.elastic.co/kibana/kibana:8.17.4
+    container_name: kibana
+    environment:
+      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+      - TELEMETRY_OPTIN=false                       # no usage data sent to Elastic
+      - TELEMETRY_ALLOWCHANGINGOPTINSTATUS=false
+    ports:
+      - "5601:5601"
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.145.0
+    container_name: otel-collector
+    environment:
+      - DD_API_KEY                            # only used by otel-config.datadog.yaml
+      - DD_SITE=${DD_SITE:-datadoghq.com}
+    command: ["--config=/etc/otelcol/config.yaml"]
+    user: "0:0"                             # allow writing to the ./data bind mount
+    volumes:
+      - ${OTEL_CONFIG:-./otel/otel-config.yaml}:/etc/otelcol/config.yaml:ro
+      - ./data:/data
+    ports:
+      - "4317:4317"                         # OTLP gRPC (Spark JVM sends here)
+      - "4318:4318"                         # OTLP HTTP
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+
+  # Live traffic: launches Spark pipelines back to back (normal / skew / failure). `make load`
+  traffic:
+    build: .
+    profiles: ["load"]
+    environment:
+      RUNS: "0"            # 0 = run until stopped
+      PAUSE_MIN: "3"
+      PAUSE_MAX: "15"
+    depends_on:
+      - otel-collector
+    restart: unless-stopped
+
+  # One-shot: the original FraudDetectionApp over the CSVs in ./data. `make fraud`
+  fraud-app:
+    build: .
+    profiles: ["fraud"]
+    working_dir: /app
+    entrypoint: ["/app/run-job.sh", "com.example.apps.FraudDetectionApp"]
+    environment:
+      OTEL_SERVICE_NAME: fraud-detection-app
+    volumes:
+      - ./data:/app/data
+    depends_on:
+      - otel-collector
+
+  # Reads the raw OTLP JSON files and joins logs to spans (no agent). `make analyze`
+  analyze:
+    build: .
+    profiles: ["analyze"]
+    working_dir: /app
+    entrypoint: ["java", "-cp", "/app/app.jar:/app/lib/*", "com.example.apps.SparkApp"]
+    volumes:
+      - ./data:/app/data
+
+volumes:
+  esdata:

@@ -1,21 +1,24 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Configuration status="WARN" packages="com.example.exporters">
     <Appenders>
-<!--        <Console name="Console" target="SYSTEM_OUT">
-            <PatternLayout pattern="%d [%t] %-5level %logger{36} - %msg%n"/>
-        </Console>-->
-
+        <!-- Console: warnings and errors only, so container output stays readable -->
         <Console name="Console" target="SYSTEM_OUT">
-            <PatternLayout
-                    pattern="%d [%t] %-5level %logger{36} trace_id=%X{trace_id} span_id=%X{span_id} - %msg%n"/>
+            <PatternLayout pattern="%d [%t] %-5level %logger{36} - %msg%n"/>
+            <ThresholdFilter level="WARN" onMatch="ACCEPT" onMismatch="DENY"/>
         </Console>
-
+        <!-- Ships every log record to OpenTelemetry with the Spark app span's trace_id / span_id -->
         <OpenTelemetryAppender name="otelAppender"/>
     </Appenders>
 
     <Loggers>
+        <!-- Spark internals are chatty at INFO; keep the signal, drop the noise -->
+        <Logger name="org.apache.spark.storage" level="warn"/>
+        <Logger name="org.apache.spark.executor" level="warn"/>
+        <Logger name="org.apache.spark.scheduler.TaskSetManager" level="warn"/>
+        <Logger name="org.sparkproject" level="warn"/>
+        <Logger name="org.apache.hadoop" level="warn"/>
         <Root level="info">
-            <!--<AppenderRef ref="Console"/> -->
+            <AppenderRef ref="Console"/>
             <AppenderRef ref="otelAppender"/>
         </Root>
     </Loggers>

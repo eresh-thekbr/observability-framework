@@ -12,7 +12,7 @@
         <maven.compiler.source>8</maven.compiler.source>
         <maven.compiler.target>8</maven.compiler.target>
         <encoding>UTF-8</encoding>
-        <spark.version>3.3.2.3.3.7191000.7-1</spark.version>
+        <spark.version>3.4.1</spark.version>
         <scala.version>2.12.15</scala.version>
         <scala.compat.version>2.12</scala.compat.version>
     </properties>
@@ -22,11 +22,6 @@
             <id>central</id>
             <name>Maven Central</name>
             <url>https://repo1.maven.org/maven2</url>
-        </repository>
-        <!-- Required for Cloudera-specific Spark versions -->
-        <repository>
-            <id>cloudera</id>
-            <url>https://repository.cloudera.com/artifactory/cloudera-repos/</url>
         </repository>
     </repositories>
 
@@ -125,6 +120,23 @@
                             <goal>compile</goal>
                             <goal>testCompile</goal>
                         </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <!-- Copies runtime dependencies to target/lib so the Docker image can run the jobs -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-dependency-plugin</artifactId>
+                <version>3.6.1</version>
+                <executions>
+                    <execution>
+                        <id>copy-deps</id>
+                        <phase>package</phase>
+                        <goals><goal>copy-dependencies</goal></goals>
+                        <configuration>
+                            <outputDirectory>${project.build.directory}/lib</outputDirectory>
+                            <includeScope>runtime</includeScope>
+                        </configuration>
                     </execution>
                 </executions>
             </plugin>
